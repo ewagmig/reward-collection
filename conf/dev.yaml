@@ -1,0 +1,111 @@
+#baas backend config
+api:
+  version: v1
+application:
+  name   : BaaSBackendAPI
+  version: 1.0.0
+  domain : 'localhost:8080'
+  homeDir: '.'
+logging:
+  level : DEBUG
+  format: >-
+    %{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc} ->
+    %{level:.4s} %{id:03x}%{color:reset} %{message}
+middleware:
+  enable:
+    - Recovery
+    - Logging
+    - RateLimit
+    - CORS
+    - AUTH
+  ratelimit:
+    interval : 1s
+    capacity : 10000
+    cacheSize: 1000
+  cors:
+    origin:
+      allowed:
+      # - http://127.0.0.1
+#user token
+user:
+  token:
+    timeout:
+      0.5h
+#baas backend database
+database:
+  default: mysql
+  postgres:
+    connection: 'postgres://postgres:baas1234_@localhost/baas?sslmode=disable'
+  mysql:
+    connection: 'root:baas1234_@tcp(baas-mysql:3306)/baas?charset=utf8&parseTime=True&loc=Local'
+
+#baas deploy fabric image tag
+baasImage:
+  #fabirc
+  OfficialOrdererImage : "hyperledger/fabric-orderer:amd64-1.4.1"
+  OfficialPeerImage    : "hyperledger/fabric-peer:amd64-1.4.1"
+  OfficialCAImage      : "hyperledger/fabric-ca:amd64-1.4.1"
+  OfficialCCenvImage   : "hyperledger/fabric-ccenv:amd64-1.4.1"
+  OfficialCouchDBImage : "hyperledger/fabric-couchdb:0.4.10"
+  OfficialBaseOSImage  : "hyperledger/fabric-baseos:amd64-0.4.15"
+  #gm fabric
+  GMOrdererImage       : "fabric-orderer-sm-unicom:amd64-1.4.1"
+  GMPeerImage          : "fabric-peer-sm-unicom:amd64-1.4.1"
+  GMCAImage            : "fabric-ca-sm-unicom:amd64-1.4.1"
+  GMCCenvImage         : "fabric-ccenv-sm-unicom:amd64-1.4.1"
+  GMCouchDBImage       : "hyperledger/fabric-couchdb:0.4.10"
+  GMBaseOSImage        : "hyperledger/fabric-baseos:amd64-0.4.15"
+  #node-exporter
+  NodeExporterImage    : "prom/node-exporter:v1.0.1"
+  #gateway
+  GatewayImage         : "fabric-gateway-unicom:v0.8"
+
+#generator config
+generator:
+  ConfigStorePath     : "/data/baas/config"               #blockchain config file path
+  ProductionStorePath : "/data/baas/production"       #blockchain production file path
+  CryptogenBinarySW   : "/var/baas/server/bin/cryptogen"      #fabric sw bin tool of certs
+  CryptogenBinaryGM   : "/var/baas/server/bin/cryptogen-sm"   #fabric gm bin tool of certs
+  ConfigtxgenBinarySW : "/var/baas/server/bin/configtxgen"  #fabric gm bin tool of genesis and config block
+  ConfigtxgenBinaryGM : "/var/baas/server/bin/configtxgen-sm"  #fabric gm bin tool of genesis and config block
+
+#client http request timeout
+request:
+  timeout: 600s
+
+#deploy server config
+deploy:
+  #auto install: true or false
+  AutoInstall: "true"
+
+  #host image file path
+  ParamFile: "/data/baas/backimg.sh"
+  ImageFile: "/data/baas/images/fabric"
+
+  #host base software file path
+  DeploySrcFile: "/data/baas/CheckSetup.tar"
+  DeployDstFile: "/data/baas/CheckSetup.tar"
+
+  #host exporter file path
+  HostExporterSrcFile   : "/data/baas/config/node-exporter.zip"
+  HostExporterDstFile   : "/data/baas/config/node-exporter.zip"
+  HostExporterFile      : "/config/node-exporter"
+  NodeExporterDeployFile: "deploy.yaml"
+
+  #k8s config file path
+  K8sConfigPath: "/kube"
+  K8sConfigFile: "/kube/kubesphere.conf"
+
+#baas backend connect server by docker server
+server:
+  fabricEngine: "http://baas-fabricengine:8003/api/"
+  deploy      : "http://baas-deployengine:8002/api/deploy/"
+  consul      : "http://baas-consul:8500/v1/"
+  prom        : "http://baas-prometheus:9090"
+
+#baas backend host for deploy ssh
+bassBackend:
+  ip  : "BAAS_BACKEND_IP"
+  user: "BAAS_BACKEND_USER"
+  pass: "BAAS_BACKEND_PASS"
+  port: "BAAS_BACKEND_PORT"

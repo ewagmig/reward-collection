@@ -1,0 +1,37 @@
+#rewards collection config
+api:
+  version: v1
+application:
+  name   : RewardsCollectionAPI
+  version: 1.0.0
+  domain : 'localhost:8080'
+  homeDir: '.'
+logging:
+  level : DEBUG
+  format: >-
+    %{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc} ->
+    %{level:.4s} %{id:03x}%{color:reset} %{message}
+middleware:
+  enable:
+    - Recovery
+    - Logging
+    - RateLimit
+    - CORS
+    - AUTH
+  ratelimit:
+    interval : 1s
+    capacity : 10000
+    cacheSize: 1000
+  cors:
+    origin:
+      allowed:
+      # - http://127.0.0.1
+#user token
+user:
+  token:
+    timeout:
+      0.5h
+
+#rewards collection connect server by docker server
+server:
+  archiveNodeUrl: "http://localhost:8545/"
