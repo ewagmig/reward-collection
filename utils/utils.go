@@ -399,21 +399,3 @@ func WriteBlockBytes(ctx *gin.Context, blockBytes []byte) {
 	ctx.Writer.Header().Set("Content-Type", "application/octet-stream")
 	ctx.Writer.Write(blockBytes)
 }
-
-
-//func validateRequest(req *models.Params) error {
-//	if req == nil {
-//		return errors.New("request is null. ")
-//	}
-//
-//	if (req.TargetPeers == nil || len(req.TargetPeers) == 0) && len(req.TargetOrganizations) == 0 {
-//		return errors.New("targetPeers and targetOrgs both null")
-//	}
-//
-//	if req.Args == nil || len(req.Args) != 1 {
-//		return errors.New("args null or len not 1.")
-//	}
-//
-//	return nil
-//}
-

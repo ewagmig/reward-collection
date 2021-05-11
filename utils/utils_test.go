@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/viper"
+	"strconv"
 	"testing"
 )
 
@@ -18,22 +20,15 @@ func TestGetConfigYaml(t *testing.T) {
 	config := viper.New()
 
 	config.AddConfigPath(path)
-	config.SetConfigName("config")
+	config.SetConfigName("common-backend")
 	config.SetConfigType("yaml")
 
 	if err := config.ReadInConfig(); err != nil {
 		panic(err)
 	}
-	val := config.GetStringMap("channels")
+	val := config.GetString("server.archiveNodeUrl")
 	t.Log(val)
 
-	//chans := models.GetNestMap(val)
-	//
-	//t.Log(chans)
-
-	//bcinfo, _ := models.GetBCInfo(chans)
-	//
-	//t.Log(bcinfo)
 }
 
 func TestMap(t *testing.T) {
@@ -47,4 +42,24 @@ func TestMap(t *testing.T) {
 	strjson := string(input_json)
 	fmt.Printf("the json str is %s", strjson)
 	t.Log(strjson)
+}
+
+func TestConv(t *testing.T) {
+	blk := uint64(100)
+	blkByte := []byte(strconv.FormatUint(blk, 16))
+	blkHex := hex.EncodeToString(blkByte)
+	t.Log(blkHex)
+
+	blkB, _ := hex.DecodeString(blkHex)
+	resp, _ := strconv.ParseUint(string(blkB), 16, 64)
+	t.Log(resp)
+}
+
+func TestHexutils(t *testing.T) {
+	blk := uint64(100)
+	blkhex := EncodeUint64(blk)
+	t.Log(blkhex)
+
+	resp, _ := DecodeUint64(blkhex)
+	t.Log(resp)
 }

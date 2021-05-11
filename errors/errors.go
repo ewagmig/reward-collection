@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-var logger = logging.MustGetLogger("baas.errors")
+var logger = logging.MustGetLogger("rewards.collection.errors")
 
 // APIError defines the baas server API error
 type APIError interface {
