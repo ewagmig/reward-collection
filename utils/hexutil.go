@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 )
 
@@ -83,4 +84,67 @@ func mapError(err error) error {
 		return ErrOddLength
 	}
 	return err
+}
+
+var bigWordNibbles int
+
+func init() {
+	// This is a weird way to compute the number of nibbles required for big.Word.
+	// The usual way would be to use constant arithmetic but go vet can't handle that.
+	b, _ := new(big.Int).SetString("FFFFFFFFFF", 16)
+	switch len(b.Bits()) {
+	case 1:
+		bigWordNibbles = 16
+	case 2:
+		bigWordNibbles = 8
+	default:
+		panic("weird big.Word size")
+	}
+}
+
+const badNibble = ^uint64(0)
+
+func decodeNibble(in byte) uint64 {
+	switch {
+	case in >= '0' && in <= '9':
+		return uint64(in - '0')
+	case in >= 'A' && in <= 'F':
+		return uint64(in - 'A' + 10)
+	case in >= 'a' && in <= 'f':
+		return uint64(in - 'a' + 10)
+	default:
+		return badNibble
+	}
+}
+
+
+// DecodeBig decodes a hex string with 0x prefix as a quantity.
+// Numbers larger than 256 bits are not accepted.
+func DecodeBig(input string) (*big.Int, error) {
+	raw, err := checkNumber(input)
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > 64 {
+		return nil, ErrBig256Range
+	}
+	words := make([]big.Word, len(raw)/bigWordNibbles+1)
+	end := len(raw)
+	for i := range words {
+		start := end - bigWordNibbles
+		if start < 0 {
+			start = 0
+		}
+		for ri := start; ri < end; ri++ {
+			nib := decodeNibble(raw[ri])
+			if nib == badNibble {
+				return nil, ErrSyntax
+			}
+			words[i] *= 16
+			words[i] += big.Word(nib)
+		}
+		end = start
+	}
+	dec := new(big.Int).SetBits(words)
+	return dec, nil
 }

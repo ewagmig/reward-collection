@@ -5,7 +5,7 @@ import "testing"
 func TestEthcallVal(t *testing.T) {
 	archiveNode := "http://localhost:8545"
 	blkNumHex := "latest"
-	valAddr := "0x192bbe6143d57fee4d0e6fd6ec55d9c83bd5d6c9"
+	valAddr := "0x1aa397e02fb3abba1072b431e92b0f90fe60993c"
 
 	valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, blkNumHex, valAddr)
 	if err != nil {
@@ -53,4 +53,22 @@ func TestStrSplitArr(t *testing.T) {
 
 	val0 := resp[0]
 	t.Log(val0)
+}
+
+func TestGetRewardAtBlk(t *testing.T) {
+	params := &CallParams{
+		ArchiveNode:"http://localhost:8545",
+		BlkNum: uint64(600),
+	}
+	totalRewards, err := GetRewardsAtBlock(params)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(totalRewards)
+}
+
+func TestRemoveConZero(t *testing.T) {
+	str := "00000878000"
+	resp := removeConZero(str)
+	t.Log(resp)
 }

@@ -12,13 +12,13 @@ import (
 type CallParams struct {
 	//ArchiveNode could be fetched from consumer input or the default configuration from yaml file
 	ArchiveNode		string	`json:"archive_node,omitempty"`
-	PeriodBlocks	uint64	`json:"period_blocks"`
-	CurrBlkNum		uint64  `json:"curr_blk_num"`
+	PeriodBlocks	uint64	`json:"period_blocks,omitempty"`
+	BlkNum			uint64  `json:"blk_num"`
 }
 
 type ValRewardsInfo struct {
-	ValAddr		string		`json:"val_addr"`
-	Rewards		big.Int		`json:"rewards"`
+	ValAddr		string			`json:"val_addr"`
+	Rewards		*big.Int		`json:"rewards"`
 }
 
 type ValRewardsInfos []ValRewardsInfo
@@ -39,26 +39,27 @@ func GetState(params *CallParams) (valsInfo *ValRewardsInfos, err error){
 		archiveNode = viper.GetString("server.archiveNodeUrl")
 	}
 	//get all the validators
-	blkhex := utils.EncodeUint64(params.CurrBlkNum)
+	blkhex := utils.EncodeUint64(params.BlkNum)
 
+	//the valAddr with prefix "0x"
 	allVals, err := rpcCongressGetAllVals(archiveNode, blkhex)
 	if err != nil {
 		return nil,errors.BadRequestError(errors.EthCallError, err)
 	}
 
-	//fetch the current block height values
+	//fetch the values from current block number
 	for _, val := range allVals {
+		val = strings.TrimPrefix(val, "0x")
 		_, err := jsonrpcEthCallGetValInfo(archiveNode, blkhex, val)
 		if err != nil {
 			return nil,errors.BadRequestError(errors.EthCallError, err)
 		}
-
 	}
 
 
 	//fetch the period first block height values
 	epoch := params.PeriodBlocks
-	blkP0 := params.CurrBlkNum - epoch + 1
+	blkP0 := params.BlkNum - epoch + 1
 	blkp0hex := utils.EncodeUint64(blkP0)
 
 	//fetch the previous block height values during period
@@ -74,6 +75,45 @@ func GetState(params *CallParams) (valsInfo *ValRewardsInfos, err error){
 	return nil, nil
 
 }
+
+//GetRewardsAtBlock return the total rewards at the specific block number
+func GetRewardsAtBlock(params *CallParams) (*big.Int, error) {
+	var archiveNode string
+	if len(params.ArchiveNode) != 0 {
+		archiveNode = params.ArchiveNode
+	} else {
+		archiveNode = viper.GetString("server.archiveNodeUrl")
+	}
+	//get all the validators
+	blkhex := utils.EncodeUint64(params.BlkNum)
+
+	//the valAddr with prefix "0x"
+	allVals, err := rpcCongressGetAllVals(archiveNode, blkhex)
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	//fetch the values from current block number
+	sumRewardsAtBlk := &big.Int{}
+	for _, val := range allVals {
+		val = strings.TrimPrefix(val, "0x")
+		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, blkhex, val)
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+		//remove zero before next operation
+		valReward := valInfo.HBIncoming
+		valReward = removeConZero(valReward)
+		valReward = "0x" + valReward
+		rewardsInBig, err := utils.DecodeBig(valReward)
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+		sumRewardsAtBlk = sumRewardsAtBlk.Add(sumRewardsAtBlk, rewardsInBig)
+	}
+	return sumRewardsAtBlk, nil
+}
+
 
 
 //jsonrpcEthCallGetValInfo used to eth_call validator info
@@ -190,7 +230,7 @@ func splitVals(vals string) ([]string, error) {
 	vals = strings.TrimPrefix(vals, "0x")
 	//remove all the zeros in length
 	strlen := vals[64:128]
-	strlen = strings.Replace(strlen,"0", "", -1)
+	strlen = removeConZero(strlen)
 	length := "0x" + strlen
 	nLen, err := utils.DecodeUint64(length)
 	if err != nil {
@@ -207,4 +247,19 @@ func splitVals(vals string) ([]string, error) {
 		valsArray = append(valsArray, vals[64*(3+i)-40:64*(3+i)])
 	}
 	return valsArray, nil
+}
+
+//removeConZero
+func removeConZero(str string) (string) {
+	var index int
+	sb := []byte(str)
+	for i := 0; i < len(sb); i++ {
+		if sb[i] == 48 {
+			continue
+		} else {
+			index = i
+			break
+		}
+	}
+	return str[index:]
 }
