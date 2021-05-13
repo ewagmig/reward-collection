@@ -84,3 +84,10 @@ func TestSplitStr(t *testing.T) {
 	str04 := str0[192:256]
 	t.Log(str04)
 }
+
+func TestRemoveDuplicateStrings(t *testing.T) {
+	arr1 := []string{"a", "b", "c"}
+	arr2 := []string{"a", "b"}
+	arr := StringArrayDiff(arr1, arr2)
+	t.Log(arr)
+}

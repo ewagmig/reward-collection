@@ -36,7 +36,7 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Path:         "/getValidatorsRewards",
 			Method:       "GET",
 			//AuthType: utils.BasicAuth,
-			Handler:      rc.getState,
+			Handler:      rc.getRewards,
 		},
 		//{
 		//	Path:         "/put",
@@ -47,14 +47,14 @@ func (rc *rewardsCol) Routes() []*server.Router {
 	}
 }
 
-func (rc *rewardsCol) getState(ctx *gin.Context)  {
+func (rc *rewardsCol) getRewards(ctx *gin.Context)  {
 	req := &models.CallParams{}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
 
-	resp, err := models.GetState(req)
+	resp, err := models.GetRewards(req)
 	if err != nil {
 		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
 		return
