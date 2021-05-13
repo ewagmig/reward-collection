@@ -56,11 +56,9 @@ func TestStrSplitArr(t *testing.T) {
 }
 
 func TestGetRewardAtBlk(t *testing.T) {
-	params := &CallParams{
-		ArchiveNode:"http://localhost:8545",
-		BlkNum: uint64(600),
-	}
-	totalRewards, err := GetRewardsAtBlock(params)
+	ArchiveNode := "http://localhost:8545"
+	BlkNum := uint64(600)
+	totalRewards, err := GetRewardsAtBlock(ArchiveNode,BlkNum)
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,4 +69,15 @@ func TestRemoveConZero(t *testing.T) {
 	str := "00000878000"
 	resp := removeConZero(str)
 	t.Log(resp)
+}
+
+func TestGetDeltaRewards(t *testing.T) {
+	epochIndex := uint64(7)
+	archiveNode := "http://localhost:8545"
+	resp, err := getDeltaRewards(epochIndex, archiveNode)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(resp)
+
 }

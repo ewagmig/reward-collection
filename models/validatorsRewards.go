@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	EP = uint64(200)
+)
+
 type CallParams struct {
 	//ArchiveNode could be fetched from consumer input or the default configuration from yaml file
 	ArchiveNode		string	`json:"archive_node,omitempty"`
@@ -21,8 +25,6 @@ type ValRewardsInfo struct {
 	Rewards		*big.Int		`json:"rewards"`
 }
 
-type ValRewardsInfos []ValRewardsInfo
-
 
 type ValidatorInfo struct {
 	FeeAddr		string
@@ -31,7 +33,7 @@ type ValidatorInfo struct {
 	HBIncoming  string
 }
 
-func GetState(params *CallParams) (valsInfo *ValRewardsInfos, err error){
+func GetState(params *CallParams) (valsInfo []*ValRewardsInfo, err error){
 	var archiveNode string
 	if len(params.ArchiveNode) != 0 {
 		archiveNode = params.ArchiveNode
@@ -77,15 +79,9 @@ func GetState(params *CallParams) (valsInfo *ValRewardsInfos, err error){
 }
 
 //GetRewardsAtBlock return the total rewards at the specific block number
-func GetRewardsAtBlock(params *CallParams) (*big.Int, error) {
-	var archiveNode string
-	if len(params.ArchiveNode) != 0 {
-		archiveNode = params.ArchiveNode
-	} else {
-		archiveNode = viper.GetString("server.archiveNodeUrl")
-	}
+func GetRewardsAtBlock(archiveNode string, blkNum uint64) (*big.Int, error) {
 	//get all the validators
-	blkhex := utils.EncodeUint64(params.BlkNum)
+	blkhex := utils.EncodeUint64(blkNum)
 
 	//the valAddr with prefix "0x"
 	allVals, err := rpcCongressGetAllVals(archiveNode, blkhex)
@@ -114,6 +110,107 @@ func GetRewardsAtBlock(params *CallParams) (*big.Int, error) {
 	return sumRewardsAtBlk, nil
 }
 
+//getDeltaRewards return the rewards during the epoch number of blocks
+func getDeltaRewards(epochIndex uint64, archiveNode string) (*big.Int, error) {
+	epochStartNum := epochIndex * EP + 1
+	epochEndNum := (epochIndex + 1) * EP
+
+	rewardsAtStart, err := GetRewardsAtBlock(archiveNode, epochStartNum)
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	rewardsAtEnd, err := GetRewardsAtBlock(archiveNode, epochEndNum)
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	deltaRewards := &big.Int{}
+
+	deltaRewards.Sub(rewardsAtEnd, rewardsAtStart)
+
+	return deltaRewards, nil
+}
+
+//calDistr: 50% per NumberOfActiveVal, 40% per Staking Coins, 10% per NumberOfStandbyVal
+func callDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (valsInfo []*ValRewardsInfo, err error) {
+	epochEndNum := (epochIndex + 1) * EP
+	var valInfo = &ValRewardsInfo{}
+	//make distribution of sumRewards
+	rewardsPerActNums := new(big.Int)
+	rewardsPerActNums.Div(rewards, new(big.Int).SetInt64(int64(2)))
+	actValSet, err := jsonrpcEthCallGetActVals(archiveNode, utils.EncodeUint64(epochEndNum))
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	//Here the ActNum should be 11
+	ActNum := len(actValSet)
+	perActReward := new(big.Int)
+	perActReward.Div(rewardsPerActNums, new(big.Int).SetInt64(int64(ActNum)))
+
+	rewardsPerStakingCoins := new(big.Int)
+	rewardsDouble :=new(big.Int)
+	rewardsDouble.Mul(rewards, new(big.Int).SetInt64(int64(2)))
+	rewardsPerStakingCoins.Div(rewardsDouble, new(big.Int).SetInt64(int64(5)))
+
+	//get the total staking
+	totalStakeStr, err := jsonrpcEthCallGetTotalStaking(archiveNode, utils.EncodeUint64(epochEndNum))
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+	tatoalStakeHex := parseGetAllStaking(totalStakeStr)
+	totalCoinsInEpoch, err := utils.DecodeBig(tatoalStakeHex)
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	//sharePerCoin
+	sharePerCoin := new(big.Int)
+	sharePerCoin.Div(rewardsPerStakingCoins, totalCoinsInEpoch)
+
+	for _, actVal := range actValSet {
+		val, err := jsonrpcEthCallGetValInfo(archiveNode, utils.EncodeUint64(epochEndNum), actVal)
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+
+		//convert to bigInt
+		valCoin := "0x" + val.Coins
+		valC, err := utils.DecodeBig(valCoin)
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+
+		perCoinsReward := new(big.Int)
+		perCoinsReward.Mul(sharePerCoin, valC)
+
+		actValRewards := new(big.Int)
+		actValRewards.Add(perActReward, perCoinsReward)
+
+		valInfo = &ValRewardsInfo{
+			ValAddr: actVal,
+			Rewards: actValRewards,
+		}
+		valsInfo = append(valsInfo, valInfo)
+	}
+
+	//todo handle standby vals
+
+	rewardsPerStandbyNums := new(big.Int)
+	rewardsPerStandbyNums.Div(rewards, new(big.Int).SetInt64(int64(10)))
+
+	//remaining is the remaining of rewards - perActNums - perStakingCoins - perStandbyNums
+	//todo how to handle the remaining rewards after each epoch caculation?
+	remainingRewards := new(big.Int)
+	remainingRewards.Sub(rewards, rewardsPerActNums)
+	remainingRewards.Sub(remainingRewards, rewardsPerStakingCoins)
+	remainingRewards.Sub(remainingRewards, rewardsPerStandbyNums)
+
+
+	//mock response
+	return valsInfo, nil
+}
 
 
 //jsonrpcEthCallGetValInfo used to eth_call validator info
@@ -184,6 +281,36 @@ func jsonrpcEthCallGetActVals(archNode, blkNumHex string) ([]string, error) {
 
 }
 
+//todo check whether this abi is avail in smart contract
+//jsonrpcEthCallGetTotalStaking to fetch all active validators
+func jsonrpcEthCallGetTotalStaking(archNode, blkNumHex string) (string, error) {
+	//init a new json rpc client
+	client := jsonrpc.NewClient(archNode)
+
+	//use the json_rpc api, e.g.{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x000000000000000000000000000000000000f000", "data":"0x8a11d7c9000000000000000000000000086119bd018ed4940e7427b9373c014f7b754ad5"}, "latest"],"id":1}
+	//to assemble the data string structure with fn prefix, addr with left padding
+	validatorContractAddr := "0x000000000000000000000000000000000000f000"
+	//fn getActiveValidators signature in smart contract
+	getTtoalStakingPrefix := "0xc253c384"
+
+	resp, err := client.Call("eth_call", map[string]interface{}{
+		"to": validatorContractAddr,
+		"data":getTtoalStakingPrefix,
+	}, blkNumHex)
+	if err != nil {
+		return "nil",errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	vals, err := resp.GetString()
+	if err != nil {
+		return "nil",errors.BadRequestError(errors.EthCallError, err)
+	}
+
+
+	return vals, nil
+
+}
+
 
 
 //rpcCongressGetAllVals is used for congress api querying, the ethrpc is not suitable anymore use another json rpc client
@@ -247,6 +374,14 @@ func splitVals(vals string) ([]string, error) {
 		valsArray = append(valsArray, vals[64*(3+i)-40:64*(3+i)])
 	}
 	return valsArray, nil
+}
+
+//parseGetAllStaking return the staking value
+func parseGetAllStaking(stake string) (string) {
+	stake = strings.TrimPrefix(stake, "0x")
+	//remove all the concess zeros
+	stake = removeConZero(stake[0:64])
+	return "0x" + stake
 }
 
 //removeConZero
