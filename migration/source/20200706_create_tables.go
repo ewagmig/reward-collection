@@ -1,9 +1,9 @@
 package source
 
 import (
-	mdb "github.com/ewagmig/rewards-collection/common/db"
-	"github.com/ewagmig/rewards-collection/models"
-	"github.com/ewagmig/rewards-collection/server"
+	mdb "github.com/starslabhq/rewards-collection/common/db"
+	"github.com/starslabhq/rewards-collection/models"
+	"github.com/starslabhq/rewards-collection/server"
 	"github.com/op/go-logging"
 	"github.com/spf13/cast"
 	"time"

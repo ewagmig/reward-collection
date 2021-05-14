@@ -1,4 +1,4 @@
-module github.com/ewagmig/rewards-collection
+module github.com/starslabhq/rewards-collection
 
 go 1.14
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ewagmig/rewards-collection/utils"
+	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/gin-gonic/gin"
 	logging "github.com/op/go-logging"
 	"github.com/spf13/viper"

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/awnumar/memguard"
-	cmdsvr "github.com/ewagmig/rewards-collection/cmd/server"
-	"github.com/ewagmig/rewards-collection/version"
+	cmdsvr "github.com/starslabhq/rewards-collection/cmd/server"
+	"github.com/starslabhq/rewards-collection/version"
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

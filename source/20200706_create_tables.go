@@ -5,9 +5,9 @@ import (
 
 	"github.com/op/go-logging"
 
-	mdb "github.com/ewagmig/rewards-collection/common/db"
-	"github.com/ewagmig/rewards-collection/models"
-	"github.com/ewagmig/rewards-collection/server"
+	mdb "github.com/starslabhq/rewards-collection/common/db"
+	"github.com/starslabhq/rewards-collection/models"
+	"github.com/starslabhq/rewards-collection/server"
 	"github.com/spf13/cast"
 )
 

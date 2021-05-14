@@ -1,8 +1,8 @@
 package models
 
 import (
-	"github.com/ewagmig/rewards-collection/errors"
-	"github.com/ewagmig/rewards-collection/utils"
+	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/ybbus/jsonrpc"
 	"math/big"
 	"strings"

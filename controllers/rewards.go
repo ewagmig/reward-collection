@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"github.com/ewagmig/rewards-collection/errors"
-	"github.com/ewagmig/rewards-collection/models"
-	"github.com/ewagmig/rewards-collection/server"
-	"github.com/ewagmig/rewards-collection/utils"
+	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/models"
+	"github.com/starslabhq/rewards-collection/server"
+	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
 	"net/http"

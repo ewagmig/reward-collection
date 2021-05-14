@@ -1,11 +1,11 @@
 package db
 
 import (
-	"github.com/ewagmig/rewards-collection/common/db/mysql"
-	"github.com/ewagmig/rewards-collection/common/db/pg"
-	"github.com/ewagmig/rewards-collection/common/db/sqlite3"
-	"github.com/ewagmig/rewards-collection/errors"
-	"github.com/ewagmig/rewards-collection/utils"
+	"github.com/starslabhq/rewards-collection/common/db/mysql"
+	"github.com/starslabhq/rewards-collection/common/db/pg"
+	"github.com/starslabhq/rewards-collection/common/db/sqlite3"
+	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/jinzhu/gorm"
 	"sync"
 )

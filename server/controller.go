@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/ewagmig/rewards-collection/utils"
+	"github.com/starslabhq/rewards-collection/utils"
 )
 
 // Router defines an individual API route in the API server.
