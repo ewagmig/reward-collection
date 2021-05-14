@@ -148,3 +148,13 @@ func DecodeBig(input string) (*big.Int, error) {
 	dec := new(big.Int).SetBits(words)
 	return dec, nil
 }
+
+// EncodeBig encodes bigint as a hex string with 0x prefix.
+// The sign of the integer is ignored.
+func EncodeBig(bigint *big.Int) string {
+	nbits := bigint.BitLen()
+	if nbits == 0 {
+		return "0x0"
+	}
+	return fmt.Sprintf("%#x", bigint)
+}

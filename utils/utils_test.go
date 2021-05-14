@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/viper"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -90,4 +91,15 @@ func TestRemoveDuplicateStrings(t *testing.T) {
 	arr2 := []string{"a", "b"}
 	arr := StringArrayDiff(arr1, arr2)
 	t.Log(arr)
+}
+
+func TestGetMod(t *testing.T) {
+	big1 := new(big.Int).SetInt64(int64(3320))
+	big2 := new(big.Int).SetInt64(int64(200))
+
+	mod := new(big.Int)
+	mod.Mod(big1, big2)
+
+	v := mod.Int64()
+	t.Log(v)
 }

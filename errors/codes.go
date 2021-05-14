@@ -11,4 +11,5 @@ const (
 	DatabaseError           Code = 0x00000003
 	InvalidJSONBody			Code = 0x00000004
 	IDNotFound				Code = 0x00000005
+	Forbidden				Code = 0x00000006
 )

@@ -32,6 +32,15 @@ user:
     timeout:
       0.5h
 
+#backend database
+database:
+  default: mysql
+  postgres:
+    connection: 'postgres://postgres:baas1234_@localhost/baas?sslmode=disable'
+  mysql:
+    connection: 'root:baas1234_@tcp(baas-mysql:3306)/baas?charset=utf8&parseTime=True&loc=Local'
+
+
 #rewards collection connect server by docker server
 server:
   archiveNodeUrl: "http://localhost:8545"
