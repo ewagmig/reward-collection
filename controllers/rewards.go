@@ -1,12 +1,12 @@
 package controllers
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/op/go-logging"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/models"
 	"github.com/starslabhq/rewards-collection/server"
 	"github.com/starslabhq/rewards-collection/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/op/go-logging"
 	"net/http"
 )
 
@@ -39,10 +39,10 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Handler:      rc.getRewards,
 		},
 		//{
-		//	Path:         "/put",
+		//	Path:         "/stopDistribution",
 		//	Method:       "POST",
 		//	//AuthType: utils.BasicAuth,
-		//	Handler:      rc.putState,
+		//	Handler:      rc.stopDistribution,
 		//},
 	}
 }

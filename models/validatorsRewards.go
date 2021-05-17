@@ -12,6 +12,12 @@ const (
 	EP = uint64(200)
 )
 
+/*
+	the epoch_index with relationship of epoch number and block height during one epoch:
+	[epoch_index * EP, (epoch_index + 1) * EP -1), i.e.
+	[0,199), [200, 399), [400, 599), .etc
+*/
+
 type CallParams struct {
 	//ArchiveNode could be fetched from consumer input or the default configuration from yaml file
 	ArchiveNode		string	`json:"archive_node,omitempty"`

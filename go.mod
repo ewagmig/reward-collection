@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/awnumar/memguard v0.15.1-0.20180428154555-3cae8a4b6987
+	github.com/ethereum/go-ethereum v1.9.23
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/jinzhu/gorm v1.9.15

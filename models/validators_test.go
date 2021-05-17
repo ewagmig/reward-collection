@@ -81,3 +81,10 @@ func TestGetDeltaRewards(t *testing.T) {
 	t.Log(resp)
 
 }
+
+func TestGetBlockRewards(t *testing.T) {
+	archNode := "http://localhost:8545"
+	resp := GetBlockchainInfo(archNode)
+
+	t.Log(resp)
+}

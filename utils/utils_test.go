@@ -103,3 +103,12 @@ func TestGetMod(t *testing.T) {
 	v := mod.Int64()
 	t.Log(v)
 }
+
+func TestBigInt(t *testing.T) {
+	big1 := big.NewInt(0)
+	big2 := big.NewInt(int64(888))
+
+	fee := new(big.Int)
+	fee.Add(big1, big2)
+	t.Log(fee)
+}
