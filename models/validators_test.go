@@ -1,6 +1,9 @@
 package models
 
-import "testing"
+import (
+	"math/big"
+	"testing"
+)
 
 func TestEthcallVal(t *testing.T) {
 	archiveNode := "http://localhost:8545"
@@ -85,6 +88,23 @@ func TestGetDeltaRewards(t *testing.T) {
 func TestGetBlockRewards(t *testing.T) {
 	archNode := "http://localhost:8545"
 	resp := GetBlockchainInfo(archNode)
+	t.Log(resp.ThisBlockNum, resp.LastBlockNum, resp.EpochIndex)
+	t.Log(resp.TotalFees)
+}
 
+func TestSum(t *testing.T) {
+	a := []*big.Int{big.NewInt(1), big.NewInt(3), big.NewInt(5)}
+	resp := sum(a)
 	t.Log(resp)
+}
+
+func TestGetTxFeesByBatch(t *testing.T) {
+	archNode := "http://localhost:8545"
+	blkNum := big.NewInt(29790)
+	resp, err := getBlockFeesByBatch(archNode, blkNum)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(resp)
+
 }

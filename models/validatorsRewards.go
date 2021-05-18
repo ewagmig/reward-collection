@@ -151,7 +151,7 @@ func getDeltaRewards(epochIndex uint64, archiveNode string) (*big.Int, error) {
 	return deltaRewards, nil
 }
 
-//calDistr: 50% per NumberOfActiveVal, 40% per Staking Coins, 10% per NumberOfStandbyVal
+//calDistr: 50% per NumberOfActiveVal, 40% per Staking Coins, 10% per stakingOfCoins
 func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (valsInfo []*ValRewardsInfo, err error) {
 	epochEndNum := (epochIndex + 1) * EP -1
 	//make distribution of sumRewards
