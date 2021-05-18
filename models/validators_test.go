@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/starslabhq/rewards-collection/utils"
 	"math/big"
 	"testing"
 )
@@ -18,8 +19,8 @@ func TestEthcallVal(t *testing.T) {
 }
 
 func TestGetActVals(t *testing.T) {
-	archiveNode := "http://localhost:8545"
-	blkNumHex := "latest"
+	archiveNode := "https://http-mainnet-node.defibox.com"
+	blkNumHex := utils.EncodeUint64(uint64(4813199))
 	vals, err := jsonrpcEthCallGetActVals(archiveNode, blkNumHex)
 	if err != nil {
 		t.Error(err)
@@ -86,10 +87,17 @@ func TestGetDeltaRewards(t *testing.T) {
 }
 
 func TestGetBlockRewards(t *testing.T) {
-	archNode := "http://localhost:8545"
-	resp := GetBlockchainInfo(archNode)
+	archNode := "https://http-mainnet-node.defibox.com"
+	epochIndex := uint64(24063)
+	resp := GetBlockEpochRewards(archNode, epochIndex)
+	//t.Log(resp.ThisBlockNum, resp.LastBlockNum, resp.EpochIndex)
+	t.Log(resp)
+}
+
+func TestScramChainInfo(t *testing.T) {
+	archNode := "https://http-mainnet-node.defibox.com"
+	resp := ScramChainInfo(archNode)
 	t.Log(resp.ThisBlockNum, resp.LastBlockNum, resp.EpochIndex)
-	t.Log(resp.TotalFees)
 }
 
 func TestSum(t *testing.T) {
@@ -99,9 +107,22 @@ func TestSum(t *testing.T) {
 }
 
 func TestGetTxFeesByBatch(t *testing.T) {
-	archNode := "http://localhost:8545"
-	blkNum := big.NewInt(29790)
+	archNode := "https://http-mainnet-node.defibox.com"
+	blkNum := big.NewInt(4811960)
 	resp, err := getBlockFeesByBatch(archNode, blkNum)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(resp)
+
+}
+
+func TestGetRewards(t *testing.T) {
+	params := &CallParams{
+		EpochIndex: uint64(24063),
+		ArchiveNode: "https://http-mainnet-node.defibox.com",
+	}
+	resp, err := GetRewards(params)
 	if err != nil {
 		t.Error(err)
 	}

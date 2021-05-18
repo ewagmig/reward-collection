@@ -22,8 +22,6 @@ multiple(gasPrice, gasUsed), sum all
 
 var (
 	Client *ethclient.Client
-	//wg sync.WaitGroup
-	//RPCClient *rpc.Client
 )
 
 type BlockchainInfo struct {
@@ -53,53 +51,19 @@ type TransactionInfo struct {
 }
 
 
-// GetBlockchainInfo retrieve top-level information about the blockchain
-func GetBlockchainInfo(archNode string) *BlockchainInfo {
-	blockchainInfo := &BlockchainInfo{
-	}
-
-	// RPC call to retrieve the latest block
-	lastBlockNum, err := getBlockNumber(archNode)
-	blockslogger.Infof("The latest block numer is: %v", lastBlockNum)
-	if err != nil{
-		blockslogger.Errorf("Get latest block error: %v", err)
-	}
-
+// GetBlockEpochRewards retrieve top-level information about the blockchain
+func GetBlockEpochRewards(archNode string, epochIndex uint64) *big.Int {
+	blockchainInfo := ScramChainInfo(archNode)
 	maxBlock := EP
-	//get mod of the lastBlockNum % EP > 10 to prevent `reorg` issue
-	del := new(big.Int)
-	del.Mod(lastBlockNum, big.NewInt(int64(EP)))
-	if del.Cmp(big.NewInt(int64(10))) == -1 {
-		//wait for 40 seconds more to recall the blockNumber
-		time.Sleep(30 * time.Second)
-		lastBlockNum, err = getBlockNumber(archNode)
-		if err != nil{
-			blockslogger.Errorf("Get latest block error: %v", err)
-		}
-		del.Mod(lastBlockNum, big.NewInt(int64(EP)))
-		if del.Cmp(big.NewInt(int64(10))) == -1 {
-			blockslogger.Warningf("No height updated, need to check the chain stability!")
-			return nil
-		}
-	}
-
-	//lastBlockNum in epoch should be modified as below:
-	lb := new(big.Int)
-	blockchainInfo.LastBlockNum = lb.Sub(lastBlockNum, del.Add(del, big.NewInt(int64(1))))
-
-	//thisBlockNum in epoch
-	tb := new(big.Int)
-	blockchainInfo.ThisBlockNum = tb.Sub(lastBlockNum, del.Add(del, big.NewInt(int64(199))))
-
-	epindex := new(big.Int)
-	blockchainInfo.EpochIndex = epindex.Div(tb, big.NewInt(int64(200))).Uint64()
-
+	//(epochIndex + 1) * EP - 1
+	LastBlockNum := new(big.Int).Mul(big.NewInt(0).SetUint64(EP), big.NewInt(0).SetUint64(epochIndex + 1))
+	LastBlockNum.Sub(LastBlockNum, big.NewInt(1))
 	fees := big.NewInt(0)
 	for i := uint64(0); i < maxBlock; i++ {
-		blockNum := big.NewInt(0).Set(blockchainInfo.LastBlockNum).Sub(blockchainInfo.LastBlockNum, big.NewInt(int64(i)))
+		blockNum := big.NewInt(0).Set(LastBlockNum).Sub(LastBlockNum, big.NewInt(int64(i)))
 
 		//init the Client
-		Client, err = ethclient.Dial(archNode)
+		Client, err := ethclient.Dial(archNode)
 		if err != nil {
 			blockslogger.Warningf("Dial archNode error!")
 			return nil
@@ -138,8 +102,49 @@ func GetBlockchainInfo(archNode string) *BlockchainInfo {
 		blockchainInfo.Blocks = append(blockchainInfo.Blocks, blockInfo)
 
 	}
-	blockchainInfo.TotalFees = fees
+	//blockchainInfo.TotalFees = fees
 
+	return fees
+}
+
+func ScramChainInfo(archNode string) *BlockchainInfo {
+	blockchainInfo := &BlockchainInfo{
+	}
+
+	// RPC call to retrieve the latest block
+	lastBlockNum, err := getBlockNumber(archNode)
+	blockslogger.Infof("The latest block numer is: %v", lastBlockNum)
+	if err != nil{
+		blockslogger.Errorf("Get latest block error: %v", err)
+	}
+
+	//get mod of the lastBlockNum % EP > 10 to prevent `reorg` issue
+	del := new(big.Int)
+	del.Mod(lastBlockNum, big.NewInt(int64(EP)))
+	if del.Cmp(big.NewInt(int64(10))) == -1 {
+		//wait for 40 seconds more to recall the blockNumber
+		time.Sleep(30 * time.Second)
+		lastBlockNum, err = getBlockNumber(archNode)
+		if err != nil{
+			blockslogger.Errorf("Get latest block error: %v", err)
+		}
+		del.Mod(lastBlockNum, big.NewInt(int64(EP)))
+		if del.Cmp(big.NewInt(int64(10))) == -1 {
+			blockslogger.Warningf("No height updated, need to check the chain stability!")
+			return nil
+		}
+	}
+
+	//lastBlockNum in epoch should be modified as below:
+	lb := new(big.Int)
+	blockchainInfo.LastBlockNum = lb.Sub(lastBlockNum, del.Add(del, big.NewInt(int64(1))))
+
+	//thisBlockNum in epoch
+	tb := new(big.Int)
+	blockchainInfo.ThisBlockNum = tb.Sub(lastBlockNum, del.Add(del, big.NewInt(int64(199))))
+
+	epindex := new(big.Int)
+	blockchainInfo.EpochIndex = epindex.Div(tb, big.NewInt(int64(200))).Uint64()
 	return blockchainInfo
 }
 

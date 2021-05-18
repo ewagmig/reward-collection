@@ -21,13 +21,14 @@ const (
 type CallParams struct {
 	//ArchiveNode could be fetched from consumer input or the default configuration from yaml file
 	ArchiveNode		string	`json:"archive_node,omitempty"`
-	PeriodBlocks	uint64	`json:"period_blocks,omitempty"`
+	//PeriodBlocks	uint64	`json:"period_blocks,omitempty"`
 	EpochIndex		uint64  `json:"epoch_index,omitempty"`
 }
 
 type ValRewardsInfo struct {
 	ValAddr		string			`json:"val_addr"`
 	Rewards		*big.Int		`json:"rewards"`
+	EpochIndex	uint64  		`json:"epoch_index"`
 }
 
 type ValidatorInfo struct {
@@ -47,11 +48,9 @@ func GetRewards(params *CallParams) ([]*ValRewardsInfo, error){
 
 //GetDistributionPerEpoch to get distribution per epoch
 func GetDistributionPerEpoch(archiveNode string, epochIndex uint64) ([]*ValRewardsInfo, error) {
-	totalRewards, err := getDeltaRewards(epochIndex, archiveNode)
-	if err != nil {
-		return nil,errors.BadRequestError(errors.EthCallError, err)
-	}
-
+	//use the block scraper method to get block fees during one epoch
+	totalRewards := GetBlockEpochRewards(archiveNode, epochIndex)
+	//totalRewards := big.NewInt(10000000000000)
 	valRewInfo, err := calcuDistInEpoch(epochIndex, totalRewards, archiveNode)
 	if err != nil {
 		return nil,errors.BadRequestError(errors.EthCallError, err)
@@ -162,7 +161,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		return nil,errors.BadRequestError(errors.EthCallError, err)
 	}
 
-	//Here the ActNum should be 11
+	//Here the ActNum should be 21
 	ActNum := len(actValSet)
 	perActReward := new(big.Int)
 	perActReward.Div(rewardsPerActNums, new(big.Int).SetInt64(int64(ActNum)))
@@ -209,6 +208,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		valInfo := &ValRewardsInfo{
 			ValAddr: actVal,
 			Rewards: actValRewards,
+			EpochIndex: epochIndex,
 		}
 		valsInfo = append(valsInfo, valInfo)
 	}
@@ -231,18 +231,43 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	if len(valsbs) == 0 {
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "No standby val")
 	}
-	sbValNums := len(valsbs)
+	//sbValNums := len(valsbs)
 
-	rewardsPerStandbyNums := new(big.Int)
-	rewardsPerStandbyNums.Div(rewards, new(big.Int).SetInt64(int64(10)))
+	rewardsPerStandbyCoins := new(big.Int)
+	rewardsPerStandbyCoins.Div(rewards, new(big.Int).SetInt64(int64(10)))
 
-	perSBReward := new(big.Int)
-	perSBReward.Div(rewardsPerStandbyNums, new(big.Int).SetInt64(int64(sbValNums)))
+	//perSBReward := new(big.Int)
+	//perSBReward.Div(rewardsPerStandbyNums, new(big.Int).SetInt64(int64(sbValNums)))
+
+	//fetch all the rewards perStaking
+	totalValC := big.NewInt(0)
+	valMap := make(map[string]*big.Int)
+	for _, sbv := range valsbs {
+		val, err := jsonrpcEthCallGetValInfo(archiveNode, utils.EncodeUint64(epochEndNum), sbv)
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+
+		//convert to bigInt
+		valCoin := "0x" + val.Coins
+		valC, err := utils.DecodeBig(valCoin)
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+
+		totalValC = totalValC.Add(totalValC, valC)
+		valMap[sbv] = valC
+	}
+
+	sharePerSBCoin := new(big.Int)
+	sharePerSBCoin.Div(rewardsPerStandbyCoins, totalValC)
+
 
 	for _, sbv := range valsbs{
 		valInfo := &ValRewardsInfo{
 			ValAddr: sbv,
-			Rewards: perSBReward,
+			Rewards: new(big.Int).Mul(sharePerSBCoin, valMap[sbv]),
+			EpochIndex: epochIndex,
 		}
 		valsInfo = append(valsInfo, valInfo)
 	}

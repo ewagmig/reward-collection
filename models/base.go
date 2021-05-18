@@ -2,12 +2,10 @@ package models
 
 import (
 	"context"
-	mdb "github.com/starslabhq/rewards-collection/common/db"
 	"github.com/jinzhu/gorm"
+	mdb "github.com/starslabhq/rewards-collection/common/db"
 	"time"
 )
-
-
 
 // IDBase contains a ID field which can be used as the base definition for
 // other model definitions.
