@@ -1,12 +1,12 @@
 package db
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/starslabhq/rewards-collection/common/db/mysql"
 	"github.com/starslabhq/rewards-collection/common/db/pg"
 	"github.com/starslabhq/rewards-collection/common/db/sqlite3"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/utils"
-	"github.com/jinzhu/gorm"
 	"sync"
 )
 
@@ -43,9 +43,9 @@ func Init(dbType DBType, source string) error {
 
 	gdb.BlockGlobalUpdate(true)
 	// add callbacks to check if user has permissions to access blockchain
-	gdb.Callback().Query().Before("gorm:query").Register("baas:check_blockchains_query", queryCallback)
-	gdb.Callback().RowQuery().Before("gorm:row_query").Register("baas:check_blockchains_row_query", queryCallback)
-	gdb.Callback().Create().Before("gorm:create").Register("baas:check_blockchains_create", createCallback)
+	//gdb.Callback().Query().Before("gorm:query").Register("baas:check_blockchains_query", queryCallback)
+	//gdb.Callback().RowQuery().Before("gorm:row_query").Register("baas:check_blockchains_row_query", queryCallback)
+	//gdb.Callback().Create().Before("gorm:create").Register("baas:check_blockchains_create", createCallback)
 	// gdb.Callback().Delete().Before("gorm:delete").Register("concord:check_blockchains_delete", deleteCallback)
 	// gdb.Callback().Create().Before("gorm:update").Register("concord:check_blockchains_update", updateCallback)
 	return err

@@ -285,15 +285,16 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 }
 
 //jsonrpcEthCallGetValInfo used to eth_call validator info
+//The contractAddr should be aligned with current status
 func jsonrpcEthCallGetValInfo(archNode, blkNumHex, addrHex string) (*ValidatorInfo, error){
 	//init a new json rpc client
 	client := jsonrpc.NewClient(archNode)
 
 	//use the json_rpc api, e.g.{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x000000000000000000000000000000000000f000", "data":"0x8a11d7c9000000000000000000000000086119bd018ed4940e7427b9373c014f7b754ad5"}, "latest"],"id":1}
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := "0x000000000000000000000000000000000000f000"
+	validatorContractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
 	//fn getValidatorInfo signature in smart contract
-	getValInfoPrefix := "0x8a11d7c9"
+	getValInfoPrefix := "0x3f132347"
 	addrPrefix := "000000000000000000000000"
 	valAddr := strings.TrimPrefix(addrHex, "0x")
 	dataOb := getValInfoPrefix + addrPrefix + valAddr

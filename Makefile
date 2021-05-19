@@ -5,14 +5,14 @@
 
 VERSION=v0.1
 
-VERSIONPKG=gitlab.chinaunicom.cn/ChinaUnicomBigData/BlockChain/Components/common-backend/version
+VERSIONPKG=github.com/starslabhq/rewards-collection/version
 GO_LDFLAGS = -X $(VERSIONPKG).Main=$(VERSION) -X $(VERSIONPKG).ChangeLog=$(shell git rev-list -1 HEAD) -X $(VERSIONPKG).BuiltAt=$(shell date +%Y-%m-%d\.%H:%M:%S)
 
 PROJECT_FILES = $(shell find . -name "*.go" -or -name "*.h" -or -name "*.c" -or -name "*.s")
 
-PROJECT_PKG=gitlab.chinaunicom.cn/ChinaUnicomBigData/BlockChain/Components/common-backend
+PROJECT_PKG=github.com/starslabhq/rewards-collection
 
-pkg-map.common-backend := gitlab.chinaunicom.cn/ChinaUnicomBigData/BlockChain/Components/common-backend
+pkg-map.common-backend := github.com/starslabhq/rewards-collection
 
 #binary
 common-backend: build/bin/common-backend

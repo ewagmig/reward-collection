@@ -102,7 +102,7 @@ func GetBlockEpochRewards(archNode string, epochIndex uint64) *big.Int {
 		blockchainInfo.Blocks = append(blockchainInfo.Blocks, blockInfo)
 
 	}
-	//blockchainInfo.TotalFees = fees
+	blockchainInfo.TotalFees = fees
 
 	return fees
 }

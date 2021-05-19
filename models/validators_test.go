@@ -7,9 +7,9 @@ import (
 )
 
 func TestEthcallVal(t *testing.T) {
-	archiveNode := "http://localhost:8545"
+	archiveNode := "https://http-testnet.hecochain.com"
 	blkNumHex := "latest"
-	valAddr := "0x1aa397e02fb3abba1072b431e92b0f90fe60993c"
+	valAddr := "0x6301cdf018E8678067cf8f14aB99F6f2a906dB44"
 
 	valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, blkNumHex, valAddr)
 	if err != nil {
@@ -87,15 +87,15 @@ func TestGetDeltaRewards(t *testing.T) {
 }
 
 func TestGetBlockRewards(t *testing.T) {
-	archNode := "https://http-mainnet-node.defibox.com"
-	epochIndex := uint64(24063)
+	archNode := "https://http-testnet.hecochain.com"
+	epochIndex := uint64(24166)
 	resp := GetBlockEpochRewards(archNode, epochIndex)
 	//t.Log(resp.ThisBlockNum, resp.LastBlockNum, resp.EpochIndex)
 	t.Log(resp)
 }
 
 func TestScramChainInfo(t *testing.T) {
-	archNode := "https://http-mainnet-node.defibox.com"
+	archNode := "https://http-testnet.hecochain.com"
 	resp := ScramChainInfo(archNode)
 	t.Log(resp.ThisBlockNum, resp.LastBlockNum, resp.EpochIndex)
 }
@@ -107,8 +107,8 @@ func TestSum(t *testing.T) {
 }
 
 func TestGetTxFeesByBatch(t *testing.T) {
-	archNode := "https://http-mainnet-node.defibox.com"
-	blkNum := big.NewInt(4811960)
+	archNode := "https://http-testnet.hecochain.com"
+	blkNum := big.NewInt(4833404)
 	resp, err := getBlockFeesByBatch(archNode, blkNum)
 	if err != nil {
 		t.Error(err)
@@ -119,8 +119,8 @@ func TestGetTxFeesByBatch(t *testing.T) {
 
 func TestGetRewards(t *testing.T) {
 	params := &CallParams{
-		EpochIndex: uint64(24063),
-		ArchiveNode: "https://http-mainnet-node.defibox.com",
+		EpochIndex: uint64(24166),
+		ArchiveNode: "https://http-testnet.hecochain.com",
 	}
 	resp, err := GetRewards(params)
 	if err != nil {

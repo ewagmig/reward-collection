@@ -4,12 +4,35 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
+	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
 	"math/big"
 	"strconv"
 	"strings"
 	"testing"
 )
+
+const (
+	connStr = "root:12345_@tcp(localhost:3306)/heco_test?charset=utf8&parseTime=True&loc=Local"
+)
+
+func InitDB(source string) (*gorm.DB, error) {
+	gdb, err := gorm.Open("mysql", source)
+	if err != nil {
+		return nil, err
+	}
+	gdb.DB().SetMaxIdleConns(0)
+	return gdb, err
+}
+
+func TestDBinit(t *testing.T) {
+	gdb, err := InitDB(connStr)
+	if err != nil {
+		t.Errorf("meet errors: error = %v", err)
+	}
+	t.Log(gdb)
+}
 
 func TestStrToStrSlice(t *testing.T) {
 	s := "39.9075,116.3972"
