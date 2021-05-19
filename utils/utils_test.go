@@ -26,7 +26,7 @@ func InitDB(source string) (*gorm.DB, error) {
 	return gdb, err
 }
 
-func TestDBinit(t *testing.T) {
+func TestDBSaveEpoch(t *testing.T) {
 	gdb, err := InitDB(connStr)
 	if err != nil {
 		t.Errorf("meet errors: error = %v", err)

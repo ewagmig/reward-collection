@@ -12,4 +12,5 @@ const (
 	InvalidJSONBody			Code = 0x00000004
 	IDNotFound				Code = 0x00000005
 	Forbidden				Code = 0x00000006
+	EPIndexExist			Code = 0x00000007
 )

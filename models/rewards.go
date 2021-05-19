@@ -40,6 +40,27 @@ func (Epoch) TableName() string {
 	return "epochs"
 }
 
+//todo use this during server mode rather than UT env
+//func (rw *Reward) BeforeCreate() error {
+//	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
+//	if db.RecordNotFound() {
+//		return nil
+//	}
+//
+//	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d along with Validator %s exists", rw.EpochIndex, rw.ValidatorAddr)
+//}
+//
+//func (ep *Epoch) BeforeCreate() error {
+//	db := MDB(context.Background()).First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
+//	if db.RecordNotFound() {
+//		return nil
+//	}
+//
+//	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
+//}
+
+
+
 func SaveVals(ctx context.Context, valInfos []*ValRewardsInfo) error {
 	for _, val := range valInfos {
 		if err := saveValReward(ctx, val); err != nil {
@@ -52,6 +73,11 @@ func SaveVals(ctx context.Context, valInfos []*ValRewardsInfo) error {
 
 
 func saveValReward(ctx context.Context, valInfo *ValRewardsInfo) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
@@ -81,6 +107,7 @@ func saveEpoch(ctx context.Context, info *BlockchainInfo) error {
 		LastBlockNumber: info.LastBlockNum.Int64(),
 		TotalFees: info.TotalFees.String(),
 	}
+
 	if err := tx.Create(blockRewards).Error; err != nil {
 		blockslogger.Errorf("Create epoch error '%v'", err)
 		tx.Rollback()

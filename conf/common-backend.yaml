@@ -38,7 +38,7 @@ database:
   postgres:
     connection: 'postgres://postgres:baas1234_@localhost/baas?sslmode=disable'
   mysql:
-    connection: 'root:12345_@tcp(mysql:3306)/heco_test?charset=utf8&parseTime=True&loc=Local'
+    connection: 'root:12345_@tcp(localhost:3306)/heco_test?charset=utf8&parseTime=True&loc=Local'
 
 
 #rewards collection connect server by docker server

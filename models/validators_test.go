@@ -1,10 +1,50 @@
 package models
 
 import (
+	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
+	"github.com/jinzhu/gorm"
 	"github.com/starslabhq/rewards-collection/utils"
 	"math/big"
 	"testing"
 )
+
+const (
+	connStr = "root:12345_@tcp(localhost:3306)/heco_test?charset=utf8&parseTime=True&loc=Local"
+)
+
+func InitDB(source string) (*gorm.DB, error) {
+	gdb, err := gorm.Open("mysql", source)
+	if err != nil {
+		return nil, err
+	}
+	gdb.DB().SetMaxIdleConns(0)
+	return gdb, err
+}
+
+func TestSaveEpochData(t *testing.T) {
+	archNode := "https://http-testnet.hecochain.com"
+	blockInfo := ScramChainInfo(archNode)
+	t.Log(blockInfo.EpochIndex)
+	fees := GetBlockEpochRewards(archNode,blockInfo.EpochIndex)
+	blockInfo.TotalFees = fees
+
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	epochs := &Epoch{
+		EpochIndex: int64(blockInfo.EpochIndex),
+		ThisBlockNumber: blockInfo.ThisBlockNum.Int64(),
+		LastBlockNumber: blockInfo.LastBlockNum.Int64(),
+		TotalFees: blockInfo.TotalFees.String(),
+	}
+
+	err = db.Create(epochs).Error
+	if err != nil {
+		t.Error(err)
+	}
+}
 
 func TestEthcallVal(t *testing.T) {
 	archiveNode := "https://http-testnet.hecochain.com"
