@@ -1,11 +1,14 @@
 package server
 
 import (
+	decron "github.com/robfig/cron/v3"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	_ "github.com/starslabhq/rewards-collection/controllers"
+	"github.com/starslabhq/rewards-collection/models"
 	"github.com/starslabhq/rewards-collection/server"
 	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/starslabhq/rewards-collection/version"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"strings"
@@ -25,9 +28,15 @@ func startCmd() *cobra.Command {
 }
 
 func start(mode string) error {
-	logger.Infof("Start ChinaUnicom common component server in %s mode, with %s", mode, version.Version())
+	logger.Infof("Start heco common component server in %s mode, with %s", mode, version.Version())
 
 	s := server.New(getServerOptions(mode)...)
+
+	// make the cron job
+	c := decron.New()
+	//refresh every minute
+	c.AddFunc("@every 10m", models.SyncEpochBackground)
+	c.Start()
 
 	// Startup server to accept requests...
 	fastexit := make(chan struct{})

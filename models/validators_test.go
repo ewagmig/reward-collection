@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
 	"github.com/jinzhu/gorm"
 	"github.com/starslabhq/rewards-collection/utils"
@@ -101,7 +102,7 @@ func TestStrSplitArr(t *testing.T) {
 
 func TestGetRewardAtBlk(t *testing.T) {
 	ArchiveNode := "http://localhost:8545"
-	BlkNum := uint64(600)
+	BlkNum := uint64(41096)
 	totalRewards, err := GetRewardsAtBlock(ArchiveNode,BlkNum)
 	if err != nil {
 		t.Error(err)
@@ -127,8 +128,8 @@ func TestGetDeltaRewards(t *testing.T) {
 }
 
 func TestGetBlockRewards(t *testing.T) {
-	archNode := "https://http-testnet.hecochain.com"
-	epochIndex := uint64(24166)
+	archNode := "http://localhost:8545"
+	epochIndex := uint64(41096)
 	resp := GetBlockEpochRewards(archNode, epochIndex)
 	//t.Log(resp.ThisBlockNum, resp.LastBlockNum, resp.EpochIndex)
 	t.Log(resp)
@@ -147,8 +148,8 @@ func TestSum(t *testing.T) {
 }
 
 func TestGetTxFeesByBatch(t *testing.T) {
-	archNode := "https://http-testnet.hecochain.com"
-	blkNum := big.NewInt(4833404)
+	archNode := "http://localhost:8545"
+	blkNum := big.NewInt(41096)
 	resp, err := getBlockFeesByBatch(archNode, blkNum)
 	if err != nil {
 		t.Error(err)
@@ -168,4 +169,22 @@ func TestGetRewards(t *testing.T) {
 	}
 	t.Log(resp)
 
+}
+
+func TestSaveEpData(t *testing.T) {
+	blkhelper := &blockHelper{
+		ArchNode: "https://http-testnet.hecochain.com",
+	}
+	epIndex := uint64(24333)
+	ctx := context.TODO()
+
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = blkhelper.SaveEpochDataForTest(ctx, epIndex, db)
+	if err != nil {
+		t.Error(err)
+	}
 }

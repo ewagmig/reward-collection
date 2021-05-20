@@ -43,4 +43,4 @@ database:
 
 #rewards collection connect server by docker server
 server:
-  archiveNodeUrl: "http://localhost:8545"
+  archiveNodeUrl: "https://http-testnet.hecochain.com"

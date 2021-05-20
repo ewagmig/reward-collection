@@ -34,7 +34,7 @@ build/bin/%: $(PROJECT_FILES)
 build/image/%: Makefile build/image/%/payload build/image/%/docker-entrypoint.sh build/image/%/Dockerfile
 	$(eval TARGET = ${patsubst build/image/%,%,${@}})
 	@echo "Building docker $(TARGET)-image"
-	docker build -t chinaunicom/common-$(TARGET):$(VERSION) $(@)
+	docker build -t heco/common-$(TARGET):$(VERSION) $(@)
 
 #new version
 build/docker/bin/%: $(PROJECT_FILES)

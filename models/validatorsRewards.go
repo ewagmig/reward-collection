@@ -284,6 +284,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	return valsInfo, nil
 }
 
+//todo: check with the node voting contract api
 //jsonrpcEthCallGetValInfo used to eth_call validator info
 //The contractAddr should be aligned with current status
 func jsonrpcEthCallGetValInfo(archNode, blkNumHex, addrHex string) (*ValidatorInfo, error){

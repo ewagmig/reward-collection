@@ -148,6 +148,36 @@ func ScramChainInfo(archNode string) *BlockchainInfo {
 	return blockchainInfo
 }
 
+func GetEpochFees(archNode string, epochIndex uint64) (*BlockchainInfo, error) {
+	maxBlock := EP
+	//(epochIndex + 1) * EP - 1
+	LastBlockNum := new(big.Int).Mul(big.NewInt(0).SetUint64(EP), big.NewInt(0).SetUint64(epochIndex + 1))
+	LastBlockNum.Sub(LastBlockNum, big.NewInt(1))
+	thisBlkNo := new(big.Int).Sub(LastBlockNum,big.NewInt(int64(199)))
+	fees := big.NewInt(0)
+	for i := uint64(0); i < maxBlock; i++ {
+		blockNum := big.NewInt(0).Set(LastBlockNum).Sub(LastBlockNum, big.NewInt(int64(i)))
+		//get the blockFee
+		blockFee, err := getBlockFeesByBatch(archNode, blockNum)
+		if blockFee == nil {
+			blockFee = big.NewInt(0)
+		}
+		if err != nil {
+			blockslogger.Errorf("Error getting block  fee %v by number: %v", blockNum, err)
+			continue
+		}
+
+		fees.Add(fees, blockFee)
+	}
+	info := &BlockchainInfo{
+		TotalFees: fees,
+		EpochIndex: epochIndex,
+		ThisBlockNum: thisBlkNo,
+		LastBlockNum: LastBlockNum,
+	}
+	return info, nil
+}
+
 //GetBlockFeeForBlock Deprecated adds the transactions and blockFee for ThisBlockNum into the BlockchainInfo struct
 //func GetBlockFeeForBlock(archNode string, blockNumber *big.Int) (blockFee *big.Int, err error){
 //	if blockNumber == nil {
