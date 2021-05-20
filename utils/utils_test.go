@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
-	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"math/big"
 	"strconv"
 	"strings"
@@ -18,11 +19,15 @@ const (
 )
 
 func InitDB(source string) (*gorm.DB, error) {
-	gdb, err := gorm.Open("mysql", source)
+	gdb, err := gorm.Open(mysql.New(mysql.Config{DSN:source}), &gorm.Config{AllowGlobalUpdate: true})
 	if err != nil {
 		return nil, err
 	}
-	gdb.DB().SetMaxIdleConns(0)
+	sql,err := gdb.DB()
+	if err != nil {
+		return nil, err
+	}
+	sql.SetMaxIdleConns(0)
 	return gdb, err
 }
 

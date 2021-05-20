@@ -2,10 +2,10 @@ package models
 
 import (
 	"context"
-	"github.com/jinzhu/gorm"
 	"github.com/op/go-logging"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
+	"gorm.io/gorm"
 	"math/big"
 	"time"
 )
@@ -108,7 +108,7 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
-	if err := tx.Create(&RWs).Error; err != nil {
+	if err := tx.Create(RWs).Error; err != nil {
 		blockslogger.Errorf("Create rewards error '%v'", err)
 		tx.Rollback()
 		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
