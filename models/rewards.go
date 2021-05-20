@@ -6,6 +6,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
+	"math/big"
 	"time"
 )
 
@@ -58,36 +59,132 @@ func newBlockHelper() *blockHelper {
 }
 
 //todo use this during server mode rather than UT env
-func (rw *Reward) BeforeCreate() error {
-	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
-	if db.RecordNotFound() {
-		return nil
+//func (rw *Reward) BeforeCreate() error {
+//	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
+//	if db.RecordNotFound() {
+//		return nil
+//	}
+//
+//	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d along with Validator %s exists", rw.EpochIndex, rw.ValidatorAddr)
+//}
+//
+//func (ep *Epoch) BeforeCreate() error {
+//	db := MDB(context.Background()).First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
+//	if db.RecordNotFound() {
+//		return nil
+//	}
+//
+//	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
+//}
+
+//todo take phase 3 contract deployment
+//SaveVals to save vals info into database every epoch
+func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error {
+	rewards := getFeesInEPStore(ctx, epochIndex)
+	vals, err := mockCalcDisInEpoch(epochIndex, rewards)
+	if err != nil{
+		blockslogger.Errorf("Calculate rewards error '%v'", err)
 	}
 
-	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d along with Validator %s exists", rw.EpochIndex, rw.ValidatorAddr)
-}
+	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
 
-func (ep *Epoch) BeforeCreate() error {
-	db := MDB(context.Background()).First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
-	if db.RecordNotFound() {
-		return nil
-	}
-
-	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
-}
-
-
-
-func SaveVals(ctx context.Context, valInfos []*ValRewardsInfo) error {
-	for _, val := range valInfos {
-		if err := saveValReward(ctx, val); err != nil {
-			blockslogger.Errorf("Create rewards error '%v'", err)
-			continue
+	RWs := []*Reward{}
+	//use batch to insert data
+	for _, val := range vals {
+		rw := &Reward{
+			EpochIndex: int64(val.EpochIndex),
+			ValidatorAddr: val.ValAddr,
+			Rewards: val.Rewards.String(),
 		}
+		RWs = append(RWs, rw)
 	}
+
+	//begin to create the rewards table
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	tx := MDB(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := tx.Create(&RWs).Error; err != nil {
+		blockslogger.Errorf("Create rewards error '%v'", err)
+		tx.Rollback()
+		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+	}
+	tx.Commit()
+
+	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+	return nil
+
+}
+//SaveValsForUT just for UT testing
+func (helper *blockHelper)SaveValsForUT(ctx context.Context, epochIndex uint64, tx *gorm.DB) error {
+	rewards := getFeesInEPStoreForUT(ctx, epochIndex, tx)
+	vals, err := mockCalcDisInEpoch(epochIndex, rewards)
+	if err != nil{
+		blockslogger.Errorf("Calculate rewards error '%v'", err)
+	}
+
+	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+
+	RWs := []*Reward{}
+	//use batch to insert data
+	for _, val := range vals {
+		rw := &Reward{
+			EpochIndex: int64(val.EpochIndex),
+			ValidatorAddr: val.ValAddr,
+			Rewards: val.Rewards.String(),
+		}
+		RWs = append(RWs, rw)
+	}
+
+	//begin to create the rewards table
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	//tx := MDB(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := tx.Create(RWs).Error; err != nil {
+		blockslogger.Errorf("Create rewards error '%v'", err)
+		tx.Rollback()
+		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+	}
+	tx.Commit()
+
+	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+	return nil
+
+}
+
+func saveValRewardForUT(ctx context.Context, valInfo *ValRewardsInfo, db *gorm.DB) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	//tx := MDB(ctx).Begin()
+	tx := db
+	defer tx.Rollback()
+
+	valReward := &Reward{
+		EpochIndex: int64(valInfo.EpochIndex),
+		ValidatorAddr: valInfo.ValAddr,
+		Rewards: valInfo.Rewards.String(),
+	}
+
+	if err := tx.Create(valReward).Error; err != nil {
+		blockslogger.Errorf("Create rewards error '%v'", err)
+		tx.Rollback()
+		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+	}
+	tx.Commit()
 	return nil
 }
-
 
 func saveValReward(ctx context.Context, valInfo *ValRewardsInfo) error {
 	select {
@@ -204,6 +301,36 @@ func (helper *blockHelper)GetStoreEPIndex(ctx context.Context) uint64 {
 	return uint64(ep.EpochIndex)
 }
 
+func getFeesInEPStore(ctx context.Context, epIndex uint64) *big.Int {
+	ep := &Epoch{}
+	MDB(ctx).First(&ep, "epoch_index = ?", epIndex)
+	fees, ok := new(big.Int).SetString(ep.TotalFees, 10)
+	if ok {
+		return fees
+	}
+	return nil
+}
+
+func getFeesInEPStoreForUT(ctx context.Context, epIndex uint64, db *gorm.DB) *big.Int {
+	ep := &Epoch{}
+	db.First(&ep, "epoch_index = ?", epIndex)
+	fees, ok := new(big.Int).SetString(ep.TotalFees, 10)
+	if ok {
+		return fees
+	}
+	return nil
+}
+
+func getFeesInEPForUT(ctx context.Context, epIndex uint64, db *gorm.DB) *big.Int {
+	ep := &Epoch{}
+	db.First(&ep, "epoch_index = ?", epIndex)
+	fees, ok := new(big.Int).SetString(ep.TotalFees, 10)
+	if ok {
+		return fees
+	}
+	return nil
+}
+
 func ProcessEpoch(ctx context.Context) (LaIndex uint64, err error) {
 	helper := newBlockHelper()
 	epstore := helper.GetStoreEPIndex(ctx)
@@ -213,6 +340,11 @@ func ProcessEpoch(ctx context.Context) (LaIndex uint64, err error) {
 		epgap := laInfo.EpochIndex - epstore
 		for i := epgap; i > 0; i -- {
 			err = helper.SaveEpochData(ctx, laInfo.EpochIndex - i + 1)
+			if err != nil {
+				return uint64(0), err
+			}
+			//try to save rewards info into database
+			err = helper.SaveVals(ctx, laInfo.EpochIndex - i + 1)
 			if err != nil {
 				return uint64(0), err
 			}

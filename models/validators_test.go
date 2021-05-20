@@ -188,3 +188,32 @@ func TestSaveEpData(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGetFeesInEP(t *testing.T) {
+
+	ctx := context.Background()
+	epIndex := uint64(24338)
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+	fees := getFeesInEPForUT(ctx, epIndex,db)
+	t.Log(fees)
+}
+
+func TestStoreRewards(t *testing.T) {
+	blkhelper := &blockHelper{
+		ArchNode: "https://http-testnet.hecochain.com",
+	}
+
+	ctx := context.TODO()
+	epIndex := uint64(24352)
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+	err = blkhelper.SaveValsForUT(ctx, epIndex,db)
+	if err != nil {
+		t.Error(err)
+	}
+}

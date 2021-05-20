@@ -7,7 +7,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.23
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/jinzhu/gorm v1.9.15
+	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/lib/pq v1.1.1
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/onsi/gomega v1.12.0 // indirect

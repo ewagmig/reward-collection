@@ -284,6 +284,26 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	return valsInfo, nil
 }
 
+func mockCalcDisInEpoch(epochIndex uint64, rewards *big.Int) (valsInfo []*ValRewardsInfo, err error) {
+	valReMap := make(map[string]*big.Int)
+	valReMap["0x1"] = big.NewInt(100)
+	valReMap["0x2"] = big.NewInt(200)
+	valReMap["0x3"] = big.NewInt(300)
+	valReMap["0x4"] = big.NewInt(400)
+	valReMap["0x5"] = big.NewInt(500)
+
+	for i:= range valReMap {
+		valsInfo = append(valsInfo, &ValRewardsInfo{
+				ValAddr: i,
+				Rewards: valReMap[i],
+				EpochIndex: epochIndex,
+		})
+	}
+
+	return valsInfo, nil
+}
+
+
 //todo: check with the node voting contract api
 //jsonrpcEthCallGetValInfo used to eth_call validator info
 //The contractAddr should be aligned with current status
