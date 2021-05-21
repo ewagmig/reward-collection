@@ -177,11 +177,44 @@ func fetchValDist(ctx context.Context, valAddr string) (*ValDist, error) {
 	}, nil
 }
 
+//fetchValToDisWithinEP to fetch val epoch rewards during a epoch range
+func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd int64) (*ValDist, error) {
+	rws := []Reward{}
+	valds := []*big.Int{}
+	eplist := []int64{}
+	for i := epStart; i <= epEnd; i ++ {
+		eplist = append(eplist, i)
+	}
+	deltaEP := epEnd - epStart + 1
+	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
+	rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ?", valAddr, eplist).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+		//batch processing the results
+		for _, rw := range rws{
+			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+			if ok{
+				valds = append(valds, rwbig)
+			}
+		}
+		return nil
+	})
+
+	distributionlogger.Debugf("The rows affected should be %d", rw.RowsAffected)
+	//get the total distribution
+	totald := sum(valds)
+
+	return &ValDist{
+		ValAddr: valAddr,
+		Distribution: totald,
+		ThisEpoch: epStart,
+		LastEpoch: epEnd,
+	}, nil
+}
+
 //just for UT
 func fetchValDistForUT(ctx context.Context, EPs int, valAddr string, db *gorm.DB) (*ValDist, error) {
 	valds := []*big.Int{}
 	rws := []Reward{}
-	//fetch the undis reward
+	//fetch the distributed already reward
 	edrw, err := fetchValEdDisUT(ctx, valAddr, db)
 	if err != nil {
 		return nil, err
@@ -239,6 +272,39 @@ func fetchValToDisUT(ctx context.Context, valAddr string, db *gorm.DB) (*Reward,
 	rw := &Reward{}
 	db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
 	return rw, nil
+}
+
+//jsut for UT within EP range
+func fetchValToDisWithinEPUT(ctx context.Context, valAddr string, db *gorm.DB, epStart, epEnd int64) (*ValDist, error) {
+	rws := []Reward{}
+	valds := []*big.Int{}
+	eplist := []int64{}
+	for i := epStart; i <= epEnd; i ++ {
+		eplist = append(eplist, i)
+	}
+	deltaEP := epEnd - epStart + 1
+	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
+	rw := db.Where("validator_addr = ? and epoch_index IN ?", valAddr, eplist).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+		//batch processing the results
+		for _, rw := range rws{
+			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+			if ok{
+				valds = append(valds, rwbig)
+			}
+		}
+		return nil
+	})
+
+	distributionlogger.Debugf("The rows affected should be %d", rw.RowsAffected)
+	//get the total distribution
+	totald := sum(valds)
+
+	return &ValDist{
+		ValAddr: valAddr,
+		Distribution: totald,
+		ThisEpoch: epStart,
+		LastEpoch: epEnd,
+	}, nil
 }
 
 //just for UT

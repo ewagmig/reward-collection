@@ -178,45 +178,6 @@ func GetEpochFees(archNode string, epochIndex uint64) (*BlockchainInfo, error) {
 	return info, nil
 }
 
-//GetBlockFeeForBlock Deprecated adds the transactions and blockFee for ThisBlockNum into the BlockchainInfo struct
-//func GetBlockFeeForBlock(archNode string, blockNumber *big.Int) (blockFee *big.Int, err error){
-//	if blockNumber == nil {
-//		blockslogger.Warningf("No block number to retrieve transactions from")
-//		return
-//	}
-//
-//	//init the Client
-//	Client, err := ethclient.Dial(archNode)
-//	if err != nil {
-//		blockslogger.Warningf("Dial archNode error!")
-//		return nil, errors.BadRequestErrorf(errors.EthCallError, "Dial archNode error: %v", err)
-//	}
-//	defer Client.Close()
-//
-//	// retrieve the block, which includes all of the transactions
-//	block, err := Client.BlockByNumber(context.TODO(), blockNumber)
-//	if err != nil {
-//		blockslogger.Warningf("Error getting block %v by number: %v", blockNumber, err)
-//		return nil, errors.BadRequestErrorf(errors.EthCallError, "Error getting block %v by number: %v", blockNumber, err)
-//	}
-//
-//	//scrape all the transaction fees and return the blockFee
-//	blockFee = big.NewInt(0)
-//	for _, transaction := range []*types.Transaction(block.Transactions()) {
-//		// retrieve transaction receipt
-//		receipt, err := Client.TransactionReceipt(context.TODO(), transaction.Hash())
-//		if err != nil {
-//			blockslogger.Warningf("Error getting transaction receipt: %v", err)
-//			return nil, errors.BadRequestErrorf(errors.EthCallError, "Error getting transaction receipt: %v", err)
-//		}
-//
-//		transactionInfo := TransactionInfo{
-//			Fee:             big.NewInt(0).Mul(transaction.GasPrice(), big.NewInt(int64(receipt.GasUsed))),
-//		}
-//		blockFee.Add(blockFee, transactionInfo.Fee)
-//	}
-//	return blockFee, nil
-//}
 
 //getBlockFeesByBatch fetch the blockFees by batch
 func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error){
@@ -266,35 +227,6 @@ func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error
 }
 
 
-//GetBlockFee Deprecated adds the transactions and blockFee for ThisBlockNum into the BlockchainInfo struct
-//func GetBlockFee(client *ethclient.Client, archNode string, blockNumber *big.Int) (blockFee *big.Int, err error){
-//	if blockNumber == nil {
-//		blockslogger.Warningf("No block number to retrieve transactions from")
-//		return
-//	}
-//
-//	//init the Client
-//	//Client, err := ethclient.Dial(archNode)
-//	//if err != nil {
-//	//	blockslogger.Warningf("Dial archNode error!")
-//	//	return nil, errors.BadRequestErrorf(errors.EthCallError, "Dial archNode error: %v", err)
-//	//}
-//	//defer Client.Close()
-//
-//	// retrieve the block, which includes all of the transactions
-//	block, err := client.BlockByNumber(context.TODO(), blockNumber)
-//	if err != nil {
-//		blockslogger.Warningf("Error getting block %v by number: %v", blockNumber, err)
-//		return nil, errors.BadRequestErrorf(errors.EthCallError, "Error getting block %v by number: %v", blockNumber, err)
-//	}
-//
-//	//scrape all the transaction fees and return the blockFee
-//	blockFee = fetchBlkFees(client, archNode, []*types.Transaction(block.Transactions()))
-//
-//	return blockFee, nil
-//}
-
-
 func getBlockNumber(archNode string) (*big.Int, error) {
 	RPCClient, err:= rpc.Dial(archNode)
 	if err != nil {
@@ -317,91 +249,6 @@ func getBlockNumber(archNode string) (*big.Int, error) {
 	}
 	return lastBlockNum, nil
 }
-
-
-//func retrieveTx(client *ethclient.Client, archNode string, tx *types.Transaction) (txfee *big.Int, erc error){
-//	//Client, err := ethclient.Dial(archNode)
-//	//defer Client.Close()
-//	//if err != nil {
-//	//	blockslogger.Warningf("Dial archNode error!")
-//	//	return nil, errors.BadRequestErrorf(errors.EthCallError, "Dial archNode error: %v", err)
-//	//}
-//	receipt, err := client.TransactionReceipt(context.TODO(), tx.Hash())
-//	if err != nil {
-//		blockslogger.Warningf("Error getting transaction receipt: %v", err)
-//		return nil, errors.BadRequestErrorf(errors.EthCallError, "Error getting transaction receipt: %v", err)
-//	}
-//	fee := big.NewInt(0).Mul(tx.GasPrice(), big.NewInt(int64(receipt.GasUsed)))
-//	return fee, nil
-//}
-
-
-//func fetchBlkFees(client *ethclient.Client,archNode string, transactions []*types.Transaction) *big.Int {
-//	totals := make(chan *big.Int)
-//	var wg sync.WaitGroup // number of working goroutines
-//	for _, tr := range transactions {
-//		wg.Add(1)
-//		// worker
-//		go func(tr *types.Transaction) {
-//			defer wg.Done()
-//			txFee, err := retrieveTx(client,archNode, tr)
-//			if err != nil {
-//				blockslogger.Errorf("Get the goroutine function error %v", err)
-//				return
-//			}
-//			if txFee == nil {
-//				txFee = big.NewInt(0)
-//			}
-//			totals <- txFee
-//		}(tr)
-//	}
-//
-//	// closer
-//	go func() {
-//		wg.Wait()
-//		close(totals)
-//	}()
-//
-//	total := big.NewInt(0)
-//	for size := range totals {
-//		total.Add(total, size)
-//	}
-//	return total
-//}
-
-
-//func fetchEpochFees(archNode string, transactions []*types.Transaction) *big.Int {
-//	totals := make(chan *big.Int)
-//	var wg sync.WaitGroup // number of working goroutines
-//	for _, tr := range transactions {
-//		wg.Add(1)
-//		// worker
-//		go func(tr *types.Transaction) {
-//			defer wg.Done()
-//			txFee, err := retrieveTx(archNode, tr)
-//			if err != nil {
-//				blockslogger.Errorf("Get the goroutine function error %v", err)
-//				return
-//			}
-//			if txFee == nil {
-//				txFee = big.NewInt(0)
-//			}
-//			totals <- txFee
-//		}(tr)
-//	}
-//
-//	// closer
-//	go func() {
-//		wg.Wait()
-//		close(totals)
-//	}()
-//
-//	total := big.NewInt(0)
-//	for size := range totals {
-//		total.Add(total, size)
-//	}
-//	return total
-//}
 
 
 //sum the big int

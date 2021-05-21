@@ -7,6 +7,7 @@ import (
 	"github.com/starslabhq/rewards-collection/errors"
 	"gorm.io/gorm"
 	"math/big"
+	"sync"
 	"time"
 )
 
@@ -45,6 +46,7 @@ func (Epoch) TableName() string {
 
 type blockHelper struct {
 	ArchNode string
+	mu    sync.RWMutex
 }
 
 func newBlockHelper() *blockHelper {
@@ -58,8 +60,8 @@ func newBlockHelper() *blockHelper {
 	}
 }
 
-func (rw *Reward) BeforeCreateInterface() error {
-	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
+func (rw *Reward) BeforeCreate(tx *gorm.DB) error {
+	db := tx.First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
 	if db.Error != nil && db.Error.Error() == "record not found" {
 		return nil
 	}
@@ -67,8 +69,8 @@ func (rw *Reward) BeforeCreateInterface() error {
 	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d along with Validator %s exists", rw.EpochIndex, rw.ValidatorAddr)
 }
 
-func (ep *Epoch) BeforeCreateInterface() error {
-	db := MDB(context.Background()).First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
+func (ep *Epoch) BeforeCreate(tx *gorm.DB) error {
+	db := tx.First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
 	if db.Error != nil && db.Error.Error() == "record not found" {
 		return nil
 	}
@@ -76,10 +78,11 @@ func (ep *Epoch) BeforeCreateInterface() error {
 	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
 }
 
-//todo take phase 3 contract deployment
+
 //SaveVals to save vals info into database every epoch
 func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error {
 	rewards := getFeesInEPStore(ctx, epochIndex)
+	//todo take phase 3 contract deployment
 	vals, err := mockCalcDisInEpoch(epochIndex, rewards)
 	if err != nil{
 		blockslogger.Errorf("Calculate rewards error '%v'", err)
@@ -369,10 +372,20 @@ func getFeesInEPForUT(ctx context.Context, epIndex uint64, db *gorm.DB) *big.Int
 
 func ProcessEpoch(ctx context.Context) (LaIndex uint64, err error) {
 	helper := newBlockHelper()
+	laInfo, err := helper.ProcessSync(ctx)
+	if err != nil {
+		return uint64(0), err
+	}
+	return laInfo, nil
+}
+
+func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err error) {
+	helper.mu.Lock()
 	epstore := helper.GetStoreEPIndex(ctx)
 	laInfo := ScramChainInfo(helper.ArchNode)
+	helper.mu.Unlock()
+	blockslogger.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
 	if laInfo.EpochIndex > epstore {
-		blockslogger.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
 		epgap := laInfo.EpochIndex - epstore
 		for i := epgap; i > 0; i -- {
 			err = helper.SaveEpochData(ctx, laInfo.EpochIndex - i + 1)

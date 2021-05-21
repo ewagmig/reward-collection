@@ -230,7 +230,7 @@ func TestFetchDisFromDB(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	valAddr := "0x1"
+	valAddr := "0x2"
 	resp, err := fetchValDistForUT(ctx, EPs, valAddr, db)
 	if err != nil{
 		t.Error(err)
@@ -245,12 +245,28 @@ func TestUpdateDB(t *testing.T) {
 		t.Error(err)
 	}
 	valD := &ValDist{
-		"0x2",
+		"0x3",
 		big.NewInt(100),
-		int64(24461),
-		int64(24470),
+		int64(24518),
+		int64(24520),
 	}
 	resp, err := updateDisInDBUT(ctx,valD, db)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(resp)
+}
+
+func TestFindRWResults(t *testing.T) {
+	ctx := context.TODO()
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+	epStart := int64(24518)
+	epEnd := int64(24520)
+	valAddr := "0x1"
+	resp, err := fetchValToDisWithinEPUT(ctx, valAddr, db, epStart, epEnd)
 	if err != nil {
 		t.Error(err)
 	}
