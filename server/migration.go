@@ -57,10 +57,13 @@ func RunMigration() error {
 		if !now.After(m.Date()) {
 			break
 		}
-
-		if !db.Where("name = ? and expected_date = ?", m.Name(), m.Date()).First(&migration{}).RecordNotFound() {
+		db.Where("name = ? and expected_date = ?", m.Name(), m.Date()).First(&migration{})
+		if db.Error != nil && db.Error.Error() != "record not found" {
 			continue
 		}
+		//if !db.Where("name = ? and expected_date = ?", m.Name(), m.Date()).First(&migration{}).RecordNotFound() {
+		//	continue
+		//}
 
 		logger.Infof("Start to migrate the %s", m.Name())
 		if err := m.Apply(); err != nil {

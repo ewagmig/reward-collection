@@ -5,10 +5,10 @@ import (
 
 	"github.com/op/go-logging"
 
+	"github.com/spf13/cast"
 	mdb "github.com/starslabhq/rewards-collection/common/db"
 	"github.com/starslabhq/rewards-collection/models"
 	"github.com/starslabhq/rewards-collection/server"
-	"github.com/spf13/cast"
 )
 
 var migrationLogger = logging.MustGetLogger("baas.migration")
@@ -36,7 +36,7 @@ func (c *createTables20200706) Apply() error {
 		&models.Epoch{},
 	}
 
-	err := mdb.Get().AutoMigrate(tables...).Error
+	err := mdb.Get().AutoMigrate(tables...)
 	if err != nil {
 		return err
 	}

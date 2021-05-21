@@ -180,7 +180,7 @@ func TestSaveEpData(t *testing.T) {
 	blkhelper := &blockHelper{
 		ArchNode: "https://http-testnet.hecochain.com",
 	}
-	epIndex := uint64(24333)
+	epIndex := uint64(24452)
 	ctx := context.TODO()
 
 	db, err := InitDB(connStr)

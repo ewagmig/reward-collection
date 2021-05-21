@@ -59,23 +59,23 @@ func newBlockHelper() *blockHelper {
 }
 
 //todo use this during server mode rather than UT env
-//func (rw *Reward) BeforeCreate() error {
-//	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
-//	if db.RecordNotFound() {
-//		return nil
-//	}
-//
-//	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d along with Validator %s exists", rw.EpochIndex, rw.ValidatorAddr)
-//}
-//
-//func (ep *Epoch) BeforeCreate() error {
-//	db := MDB(context.Background()).First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
-//	if db.RecordNotFound() {
-//		return nil
-//	}
-//
-//	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
-//}
+func (rw *Reward) BeforeCreateInterface() error {
+	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
+	if db.Error != nil && db.Error.Error() == "record not found" {
+		return nil
+	}
+
+	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d along with Validator %s exists", rw.EpochIndex, rw.ValidatorAddr)
+}
+
+func (ep *Epoch) BeforeCreateInterface() error {
+	db := MDB(context.Background()).First(&Epoch{}, "epoch_index = ?", ep.EpochIndex)
+	if db.Error != nil && db.Error.Error() == "record not found" {
+		return nil
+	}
+
+	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
+}
 
 //todo take phase 3 contract deployment
 //SaveVals to save vals info into database every epoch
@@ -115,7 +115,7 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	}
 	tx.Commit()
 
-	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+	blockslogger.Infof("[Epoch Index %d ] Finish to store reward data for validators", epochIndex)
 	return nil
 
 }
