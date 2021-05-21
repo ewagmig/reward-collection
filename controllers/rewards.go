@@ -28,15 +28,23 @@ func (rc *rewardsCol) Name() string {
 }
 
 
-//todo add the basic authentication on APIs exposition
 func (rc *rewardsCol) Routes() []*server.Router {
 	//jwt := admin.CreateJWTFactory(false, models.Login, models.VerifyUserPermission)
 	return []*server.Router{
 		{
 			Path:         "/getValidatorsRewards",
 			Method:       "GET",
-			//AuthType: utils.BasicAuth,
 			Handler:      rc.getRewards,
+		},
+		{
+			Path:         "/getCurrentEpochInfo",
+			Method:       "GET",
+			Handler:      rc.getEpochInfo,
+		},
+		{
+			Path:         "/setStartEpoch",
+			Method:       "POST",
+			Handler:      rc.setStartEpoch,
 		},
 		//{
 		//	Path:         "/stopDistribution",
@@ -63,6 +71,30 @@ func (rc *rewardsCol) getRewards(ctx *gin.Context)  {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+func (rc *rewardsCol) setStartEpoch(ctx *gin.Context)  {
+	req := &models.CallParams{}
+	if err := utils.GetJSONBody(ctx, req); err != nil {
+		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
+		return
+	}
 
+	resp, err := models.SetStartEpoch(ctx, req.ArchiveNode, req.EpochIndex)
+	if err != nil {
+		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
+		return
+	}
 
+	ctx.JSON(http.StatusOK, resp)
+}
 
+func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
+	req := &models.CallParams{}
+	if err := utils.GetJSONBody(ctx, req); err != nil {
+		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
+		return
+	}
+
+	resp := models.ScramChainInfo(req.ArchiveNode)
+
+	ctx.JSON(http.StatusOK, resp)
+}

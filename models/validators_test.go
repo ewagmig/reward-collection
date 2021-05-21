@@ -222,3 +222,37 @@ func TestStoreRewards(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestFetchDisFromDB(t *testing.T) {
+	ctx := context.TODO()
+	EPs := 10
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+	valAddr := "0x1"
+	resp, err := fetchValDistForUT(ctx, EPs, valAddr, db)
+	if err != nil{
+		t.Error(err)
+	}
+	t.Log(resp)
+}
+
+func TestUpdateDB(t *testing.T) {
+	ctx := context.TODO()
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+	valD := &ValDist{
+		"0x2",
+		big.NewInt(100),
+		int64(24461),
+		int64(24470),
+	}
+	resp, err := updateDisInDBUT(ctx,valD, db)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(resp)
+}

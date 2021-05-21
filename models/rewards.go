@@ -58,7 +58,6 @@ func newBlockHelper() *blockHelper {
 	}
 }
 
-//todo use this during server mode rather than UT env
 func (rw *Reward) BeforeCreateInterface() error {
 	db := MDB(context.Background()).First(&Reward{}, "epoch_index = ? and validator_addr = ?", rw.EpochIndex, rw.ValidatorAddr)
 	if db.Error != nil && db.Error.Error() == "record not found" {
@@ -280,6 +279,43 @@ func (helper *blockHelper)SaveEpochData(ctx context.Context, epochIndex uint64) 
 	}
 	return nil
 }
+
+type SetStartEPResponse struct {
+	EpochIndex		int64		`json:"epoch_index"`
+	ThisBlockNum	int64		`json:"this_block_num"`
+	LastBlockNum	int64		`json:"last_block_num"`
+}
+
+//SetStartEpoch to set the start epoch for sync start point
+func SetStartEpoch(ctx context.Context, archNode string, epochIndex uint64) (*SetStartEPResponse,error) {
+	helper := &blockHelper{
+		ArchNode: archNode,
+	}
+	err := helper.SaveEpochData(ctx, epochIndex)
+	if err != nil {
+		blockslogger.Errorf("Save epoch info error '%v'", err)
+		return nil, errors.BadRequestError(errors.EthCallError, "Save epoch info error")
+	}
+
+	err = helper.SaveVals(ctx, epochIndex)
+	if err != nil {
+		blockslogger.Errorf("Save epoch rewards error '%v'", err)
+		return nil, errors.BadRequestError(errors.EthCallError, "Save epoch rewards error")
+	}
+	//get the record in database to verify
+	ep := &Epoch{}
+	MDB(ctx).First(&ep, "epoch_index = ?", epochIndex)
+
+	rb := &SetStartEPResponse{
+		EpochIndex: ep.EpochIndex,
+		ThisBlockNum: ep.ThisBlockNumber,
+		LastBlockNum: ep.LastBlockNumber,
+	}
+
+	return rb, nil
+
+}
+
 
 func (helper *blockHelper)SaveEpochDataForTest(ctx context.Context, epochIndex uint64, db *gorm.DB) error {
 	info, err := GetEpochFees(helper.ArchNode, epochIndex)
