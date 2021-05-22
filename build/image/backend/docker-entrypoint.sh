@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-serverMode="common-backend"
+serverMode="dev"
 if [ "$FABRIC_BAAS_SERVER_MODE" ]; then
     serverMode=$FABRIC_BAAS_SERVER_MODE
 fi

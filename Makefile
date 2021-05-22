@@ -45,7 +45,7 @@ build/docker/bin/%: $(PROJECT_FILES)
 
 build/image/backend/payload: \
 	build/docker/bin/common-backend \
-	conf/common-backend.yaml
+	conf/dev.yaml
 		@echo "Copying $^ to $@"
 		mkdir -p $@
 		cp $^ $@
