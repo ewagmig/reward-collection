@@ -25,12 +25,12 @@ var (
 )
 
 type BlockchainInfo struct {
-	LastBlockNum *big.Int
-	ThisBlockNum *big.Int
-	Blocks       []BlockInfo
-	Transactions []TransactionInfo
-	EpochIndex	 uint64
-	TotalFees 	*big.Int
+	LastBlockNum *big.Int `json:"last_block_num"`
+	ThisBlockNum *big.Int `json:"this_block_num"`
+	Blocks       []BlockInfo `json:"blocks,omitempty"`
+	Transactions []TransactionInfo `json:"transactions,omitempty"`
+	EpochIndex	 uint64 `json:"epoch_index,omitempty"`
+	TotalFees 	*big.Int `json:"total_fees,omitempty"`
 }
 
 type BlockInfo struct {

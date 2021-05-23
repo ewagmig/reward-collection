@@ -17,5 +17,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.1.0
 	gorm.io/gorm v1.21.10
+	modernc.org/sortutil v1.1.0 // indirect
 
 )

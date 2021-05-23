@@ -82,8 +82,7 @@ func (ep *Epoch) BeforeCreate(tx *gorm.DB) error {
 //SaveVals to save vals info into database every epoch
 func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error {
 	rewards := getFeesInEPStore(ctx, epochIndex)
-	//todo take phase 3 contract deployment
-	vals, err := mockCalcDisInEpoch(epochIndex, rewards)
+	vals, err := calcuDistInEpoch(epochIndex, rewards, helper.ArchNode)
 	if err != nil{
 		blockslogger.Errorf("Calculate rewards error '%v'", err)
 	}

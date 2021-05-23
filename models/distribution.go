@@ -2,10 +2,15 @@ package models
 
 import (
 	"context"
+	"encoding/hex"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/op/go-logging"
 	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/gorm"
 	"math/big"
+	"strings"
 )
 
 var (
@@ -27,31 +32,24 @@ type ValMapRewards struct {
 }
 
 //PreSend to pump distribution from database, then take some check before sending
-func PreSend(ctx context.Context) (bool, map[string]*big.Int, error){
-	valDs, err := PumpDistInfo(ctx)
+func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bool, map[string]*big.Int, error){
+	valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
 	if err != nil {
 		distributionlogger.Errorf("Fetch validator distribution error %v", err)
 		return false, nil, err
 	}
-	if len(valDs) == 0 {
+	if len(valmap) == 0 {
 		distributionlogger.Errorf("Fetch validator distribution error %v", err)
 		return false, nil, err
 	}
 
-	var startEpoch int64
 
-	valmap := make(map[string]*big.Int)
-	for _, vald := range valDs {
-		valmap[vald.ValAddr] = vald.Distribution
-		startEpoch = vald.ThisEpoch
-	}
-	
 	//todo some basic check before sending
 	/*
 	check before sending
 	*/
 
-	distributionlogger.Infof("Begin to send validator rewards info from epoch %d", startEpoch)
+	distributionlogger.Infof("Begin to send validator rewards info from epoch %d", epStart)
 
 	return true, valmap, nil
 }
@@ -62,47 +60,87 @@ func PreSend(ctx context.Context) (bool, map[string]*big.Int, error){
 //	
 //}
 
-//todo ContractEventListening return map[string]bool with address distribution send success or not
-//func ContractEventListening() (map[string]bool. error){
-//	/*
-//	eth_newFilter
-//
-//	eth_getFilterChanges
-//
-//	*/
-//}
+//ContractEventListening to trace the log of event NotifyRewardSummary after the contract notifyReward
+func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
+	//use archnode instead for active tracing
+	client, err := ethclient.Dial(archnode)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer client.Close()
+	receipt, err := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(txhash)))
+	if err != nil{
+		return 0,0, err
+	}
+
+	//catch the receipt status
+	if receipt.Status == uint64(1){
+		distributionlogger.Debugf("The transaction is success!")
+	}
+	//take action to handle the receipt logs
+	//event NotifyRewardSummary(uint256 inputLength, uint256 okLength), there is no indexed, only in data field
+	datastr := hex.EncodeToString(receipt.Logs[0].Data)
+
+	//split the datastr
+	datastr = strings.TrimPrefix(datastr, "0x")
+	inputLenStr := datastr[:64]
+	inputLenStr = removeConZero(inputLenStr)
+	inLen, err := utils.DecodeUint64("0x" + inputLenStr)
+	if err != nil {
+		return 0, 0, nil
+	}
+
+	okLenStr := datastr[64:128]
+	okLenStr = removeConZero(okLenStr)
+	okLen, err := utils.DecodeUint64("0x" + okLenStr)
+	if err != nil {
+		return 0, 0, nil
+	}
+
+	distributionlogger.Infof("The input pools number is %d, and the success execution in contract is %d", inLen, okLen)
+	if inLen != okLen {
+		distributionlogger.Errorf("There have been data mismatch during execution in contract!")
+	}
+
+	return inLen, okLen, nil
+}
 
 
 //PostSend
-//func PostSend() error {
-//	/*
-// 	//mapValStatus := map[string]bool
-//	mapValStatus, err := ContractEventListening()
-//	if err != nil{
-//	error handling
-//	}
-//
-//	for val, ok := range mapValStatus{
-//		if ok {
-//			upNum, err := updateDisInDB(ctx, val){
-//				if err != nil{
-//					error handling
-//				}
-//				if upNum != 36{
-//					updateDB checklist
-//				}
-//			}
-//		}
-//
-//	}
-//
-//	//abnormal solution
-//	//resend with fixed nonce, higher gasprice
-//	//some solution here
-//
-//	*/
-//
-//}
+func PostSend(ctx context.Context) error {
+	//mapValStatus := map[string]bool
+	//todo make some coordination on the input params
+	archnode, txhash := "", ""
+	inLen, okLen, err := ContractEventListening(archnode, txhash)
+	if err != nil{
+		return err
+	}
+
+	if inLen != okLen {
+		distributionlogger.Debugf("There have been data mismatch during execution in contract! Take some action to check!")
+
+	}
+
+	//normal process
+	vals := []*ValDist{}
+	for _, valD := range vals {
+		affectedRows, err := updateDisInDB(ctx, valD)
+		if affectedRows == int64(0) || err != nil {
+			distributionlogger.Errorf("The updating distributed flag error with val addr %s", valD.ValAddr)
+			continue
+		}
+	}
+
+
+
+	//abnormal solution
+	//resend with fixed nonce, higher gasprice
+	//some solution here
+
+	distributionlogger.Infof("Begin to send validator rewards info from epoch %d", vals[0].ThisEpoch)
+	return nil
+
+}
 
 //updateDisInDB to update distribution in Database
 func updateDisInDB(ctx context.Context, valD *ValDist) (int64, error) {
@@ -121,20 +159,22 @@ func updateDisInDB(ctx context.Context, valD *ValDist) (int64, error) {
 }
 
 //PumpDistInfo to pump the distribution info from database
-func PumpDistInfo(ctx context.Context) ([]*ValDist, error) {
-	//todo use node election contract phase III abi interface to get validators
-	//vals := rpcCongressGetAllVals()
-	var valsDists []*ValDist
-	vals := []string{}
-	for _, val := range vals {
-		valDist, err := fetchValDist(ctx, val)
-		if err != nil {
-			distributionlogger.Errorf("Fetch validator distribution error %v", err)
-			continue
-		}
-		valsDists = append(valsDists, valDist)
+func PumpDistInfo(ctx context.Context, epStart, epEnd uint64, archiveNode string) (map[string]*big.Int, error) {
+	valMapDist := make(map[string]*big.Int)
+	//get the vals at the end of this period
+	vals, err  := rpcCongressGetAllVals(epEnd, archiveNode)
+	if err != nil {
+		return nil, err
 	}
-	return valsDists, nil
+	for _, val := range vals{
+		valdis, err := fetchValToDisWithinEP(ctx,val,epStart,epEnd)
+		if err != nil {
+			return nil, err
+		}
+		valMapDist[val] = valdis.Distribution
+	}
+
+	return valMapDist, nil
 }
 
 
@@ -178,10 +218,10 @@ func fetchValDist(ctx context.Context, valAddr string) (*ValDist, error) {
 }
 
 //fetchValToDisWithinEP to fetch val epoch rewards during a epoch range
-func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd int64) (*ValDist, error) {
+func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd uint64) (*ValDist, error) {
 	rws := []Reward{}
 	valds := []*big.Int{}
-	eplist := []int64{}
+	eplist := []uint64{}
 	for i := epStart; i <= epEnd; i ++ {
 		eplist = append(eplist, i)
 	}
@@ -205,8 +245,8 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd i
 	return &ValDist{
 		ValAddr: valAddr,
 		Distribution: totald,
-		ThisEpoch: epStart,
-		LastEpoch: epEnd,
+		ThisEpoch: int64(epStart),
+		LastEpoch: int64(epEnd),
 	}, nil
 }
 

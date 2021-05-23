@@ -3,6 +3,8 @@ package utils
 import (
 	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
+	"math/big"
 	"math/rand"
 	"net/http"
 	"os"
@@ -23,6 +25,8 @@ const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	// HashLength is the expected length of the hash
+	HashLength = 32
 )
 
 // StrInSlice checks if t is in ss slice.
@@ -34,6 +38,51 @@ func StrInSlice(ss []string, t string) bool {
 	}
 	return false
 }
+
+
+// Hash represents the 32 byte Keccak256 hash of arbitrary data.
+type Hash [HashLength]byte
+
+// BytesToHash sets b to hash.
+// If b is larger than len(h), b will be cropped from the left.
+func BytesToHash(b []byte) Hash {
+	var h Hash
+	h.SetBytes(b)
+	return h
+}
+
+// SetBytes sets the hash to the value of b.
+// If b is larger than len(h), b will be cropped from the left.
+func (h *Hash) SetBytes(b []byte) {
+	if len(b) > len(h) {
+		b = b[len(b)-HashLength:]
+	}
+
+	copy(h[HashLength-len(b):], b)
+}
+
+// FromHex returns the bytes represented by the hexadecimal string s.
+// s may be prefixed with "0x".
+func FromHex(s string) []byte {
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	if len(s)%2 == 1 {
+		s = "0" + s
+	}
+	return Hex2Bytes(s)
+}
+
+// Hex2Bytes returns the bytes represented by the hexadecimal string str.
+func Hex2Bytes(str string) []byte {
+	h, _ := hex.DecodeString(str)
+	return h
+}
+
+// HexToHash sets byte representation of s to hash.
+// If b is larger than len(h), b will be cropped from the left.
+func HexToHash(s string) Hash { return BytesToHash(FromHex(s)) }
+
 
 // GetCommonFilterQueryParams returns the common filter query and arguments
 func GetCommonFilterQueryParams(ctx *gin.Context) (query string, args []interface{}) {
@@ -244,6 +293,17 @@ func UintInArray(t uint, arr []uint) bool {
 
 	return false
 }
+
+func BigInArray(t *big.Int, arr []*big.Int) bool {
+	for _, a := range arr {
+		if t.CmpAbs(a) == 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
 
 func UintArrayDiff(arr1, arr2 []uint) []uint {
 	ret := []uint{}
