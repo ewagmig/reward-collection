@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
 	"github.com/starslabhq/rewards-collection/errors"
@@ -45,6 +46,11 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Path:         "/setStartEpoch",
 			Method:       "POST",
 			Handler:      rc.setStartEpoch,
+		},
+		{
+			Path:         "/getSystemInfo",
+			Method:       "GET",
+			Handler:      rc.getInfo,
 		},
 		//{
 		//	Path:         "/stopDistribution",
@@ -95,6 +101,19 @@ func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
 	}
 
 	resp := models.ScramChainInfo(req.ArchiveNode)
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+//just for liveness check
+func (rc *rewardsCol) getInfo(ctx *gin.Context)  {
+	//req := &models.CallParams{}
+	//if err := utils.GetJSONBody(ctx, req); err != nil {
+	//	errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
+	//	return
+	//}
+
+	resp := fmt.Sprintf("I am OK!")
 
 	ctx.JSON(http.StatusOK, resp)
 }
