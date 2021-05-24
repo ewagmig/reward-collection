@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/awnumar/memguard"
-	cmdsvr "github.com/starslabhq/rewards-collection/cmd/server"
-	"github.com/starslabhq/rewards-collection/version"
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	cmdsvr "github.com/starslabhq/rewards-collection/cmd/server"
+	"github.com/starslabhq/rewards-collection/version"
 	"log"
 	"os"
 	"strings"
@@ -92,13 +92,14 @@ func initConf() {
 	viper.SetEnvKeyReplacer(replacer)
 
 	viper.SetConfigName(mode)
-	envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
-	if envVal != "" {
-		viper.AddConfigPath(envVal)
-	} else {
-		viper.AddConfigPath("conf/")
-	}
+	//envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
+	//if envVal != "" {
+	//	viper.AddConfigPath(envVal)
+	//} else {
+	//	viper.AddConfigPath("conf/")
+	//}
 
+	viper.AddConfigPath("conf/")
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Errorf("Fatal error config file: %s", err)
