@@ -54,7 +54,7 @@ func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bo
 	return true, valmap, nil
 }
 
-//todo signing service gateway integration
+//todo signing service gateway service integration
 //SendDistribution to send distribution to gateway signing service
 //func SendDistribution() (nonce uint64)  {
 //	

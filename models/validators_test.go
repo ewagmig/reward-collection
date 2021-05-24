@@ -117,7 +117,7 @@ func TestStrSplit(t *testing.T) {
 //}
 
 func TestRemoveConZero(t *testing.T) {
-	str := "00000878000"
+	str := "00000000000"
 	resp := removeConZero(str)
 	t.Log(resp)
 }
@@ -284,4 +284,41 @@ func TestBigSort(t *testing.T) {
 
 	t.Log(small2)
 	t.Log(big3)
+}
+
+func TestGet(t *testing.T) {
+	archNode := "https://http-testnet.hecochain.com"
+	epIndex := uint64(24910)
+	params := &CallParams{
+		ArchiveNode: archNode,
+		EpochIndex: epIndex,
+	}
+
+	valinfo, err := GetRewards(params)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(valinfo)
+}
+
+func TestGetVals(t *testing.T) {
+	archNode := "https://http-testnet.hecochain.com"
+	blockHex := "latest"
+
+	vals, err := jsonrpcEthCallGetActVals(archNode, blockHex)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(vals)
+}
+
+func TestCalcu(t *testing.T) {
+	archNode := "https://http-testnet.hecochain.com"
+	epIndex := uint64(2230)
+	rewards := big.NewInt(100)
+	val, err := calcuDistInEpoch(epIndex, rewards, archNode)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(val)
 }

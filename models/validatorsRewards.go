@@ -126,23 +126,33 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	//make distribution of sumRewards
 	rewardsPerActNums := new(big.Int)
 	rewardsPerActNums.Div(rewards, new(big.Int).SetInt64(int64(2)))
-	valnum, err := jsonrpcEthCallGetActVals(archiveNode, utils.EncodeUint64(epochEndNum))
+	//todo use latest here due to arch node not ready
+	valnum, err := jsonrpcEthCallGetActVals(archiveNode, "latest")
 	if err != nil {
 		return nil,errors.BadRequestError(errors.EthCallError, err)
 	}
 
 	//vals is the pool Length, fetch all the pool info with number iteration
 	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
+	//todo use "latest" due to arch node not ready
+	epochEndNumHex = "latest"
 	valMapCoins := make(map[string]*big.Int)
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
 		if err != nil {
 			return nil,errors.BadRequestError(errors.EthCallError, err)
 		}
-		coinsBig, err := hexutil.DecodeBig(valInfo.Coins)
-		if err != nil {
-			return nil,errors.BadRequestError(errors.EthCallError, err)
+		coinsBig := new(big.Int)
+		valInfo.Coins = removeConZero(valInfo.Coins)
+		if valInfo.Coins == fmt.Sprintf("%064s", "0") {
+			coinsBig = big.NewInt(0)
+		} else {
+			coinsBig, err = hexutil.DecodeBig("0x"+valInfo.Coins)
+			if err != nil {
+				return nil,errors.BadRequestError(errors.EthCallError, err)
+			}
 		}
+
 		valMapCoins[valInfo.FeeAddr] = coinsBig
 	}
 	var bigSort sortutil.BigIntSlice
@@ -151,13 +161,13 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	}
 	//sort the big numbers ASC
 	bigSort.Sort()
-	if len(bigSort) <= 11 {
-		return nil, errors.BadRequestErrorf(errors.EthCallError, "not enough validators in the slice!")
-	}
+	//if len(bigSort) <= 11 {
+	//	return nil, errors.BadRequestErrorf(errors.EthCallError, "not enough validators in the slice!")
+	//}
 
 	//todo check with the PM on all active nodes allocation
 	//act nodes 11 + 10(own nodes)
-	ActCoinsArray := bigSort[len(bigSort)-11:]
+	ActCoinsArray := bigSort[len(bigSort)-6:]
 	totalActCoins := sum(ActCoinsArray)
 
 	//Here the ActNum should be 21
@@ -175,13 +185,29 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	sharePerCoin := new(big.Int)
 	sharePerCoin.Div(rewardsPerStakingCoins, totalCoinsInEpoch)
 
+	//fetch standby vals
+	vals := []string{}
+	for k := range valMapCoins{
+		vals = append(vals, k)
+	}
+
 	//actValSet to fetch the active val set
 	actValSet := []string{}
-	for k, v := range valMapCoins {
-		if utils.BigInArray(v, ActCoinsArray) {
-			actValSet = append(actValSet, k)
+	CoinsMapActAddr := make(map[*big.Int]string)
+	for _, cv := range ActCoinsArray {
+		for _, v := range vals {
+			if valMapCoins[v] == cv {
+				CoinsMapActAddr[cv] = v
+			}
 		}
 	}
+
+	for _, v := range CoinsMapActAddr{
+		actValSet = append(actValSet, v)
+	}
+
+
+	//actValSet should be aligned to the len of it
 	for _, actVal := range actValSet {
 		perCoinsReward := new(big.Int)
 		perCoinsReward.Mul(sharePerCoin, valMapCoins[actVal])
@@ -197,11 +223,6 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		valsInfo = append(valsInfo, valInfo)
 	}
 
-	//fetch standby vals
-	vals := []string{}
-	for k := range valMapCoins{
-		vals = append(vals, k)
-	}
 
 	valsbs := utils.StringArrayDiff(vals, actValSet)
 	if len(valsbs) == 0 {
@@ -213,11 +234,18 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 	//fetch all the rewards perStaking
 	//standby nodes 11
-	SBCoinsArray := bigSort[:11]
+	SBCoinsArray := bigSort[:5]
 	totalSBCoins := sum(SBCoinsArray)
 
 	sharePerSBCoin := new(big.Int)
-	sharePerSBCoin.Div(rewardsPerStandbyCoins, totalSBCoins)
+	//check if all the sb coins equals zero
+	if totalSBCoins.CmpAbs(big.NewInt(0)) == 0 {
+		sharePerSBCoin = big.NewInt(0)
+	} else {
+		sharePerSBCoin.Div(rewardsPerStandbyCoins, totalSBCoins)
+	}
+
+
 
 	for _, sbv := range valsbs{
 		valInfo := &ValRewardsInfo{
@@ -229,7 +257,6 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	}
 
 	//remaining is the remaining of rewards - perActNums - perStakingCoins - perStandbyNums
-	//todo how to handle the remaining rewards after each epoch calculation?
 	//remainingRewards := new(big.Int)
 	//remainingRewards.Sub(rewards, rewardsPerActNums)
 	//remainingRewards.Sub(remainingRewards, rewardsPerStakingCoins)
@@ -268,15 +295,15 @@ func jsonrpcEthCallGetValInfo(archNode, blkNumHex string, poolId uint64) (*Valid
 
 	//use the json_rpc api, e.g.{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x000000000000000000000000000000000000f000", "data":"0x8a11d7c9000000000000000000000000086119bd018ed4940e7427b9373c014f7b754ad5"}, "latest"],"id":1}
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
+	validatorContractAddr := "0x7Ce9A4f22FB3B3e2d91cC895bb082d7BD6F08525"
 	//fn getPoolWithStatus signature in smart contract
 	getValInfoPrefix := "0x22fe6c24"
-	addrPrefix := "000000000000000000000000"
 
 	//use the poolId as input
 	hexutil.EncodeUint64(poolId)
 	pid := strings.TrimPrefix(hexutil.EncodeUint64(poolId), "0x")
-	dataOb := getValInfoPrefix + addrPrefix + pid
+	pidpad := fmt.Sprintf("%064s", pid)
+	dataOb := getValInfoPrefix + pidpad
 
 	resp, err := client.Call("eth_call",map[string]interface{}{
 		"to": validatorContractAddr,
@@ -305,7 +332,7 @@ func jsonrpcEthCallGetActVals(archNode, blkNumHex string) (uint64, error) {
 	client := jsonrpc.NewClient(archNode)
 
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
+	validatorContractAddr := "0x7Ce9A4f22FB3B3e2d91cC895bb082d7BD6F08525"
 	//fn getPoolLength() signature in smart contract
 	getValsPrefix := "0xb3944d52"
 
