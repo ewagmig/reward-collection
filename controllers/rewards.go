@@ -52,6 +52,11 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Method:       "GET",
 			Handler:      rc.getInfo,
 		},
+		{
+			Path:         "/pumpDistInfo",
+			Method:       "GET",
+			Handler:      rc.pumpInfo,
+		},
 		//{
 		//	Path:         "/stopDistribution",
 		//	Method:       "POST",
@@ -101,6 +106,22 @@ func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
 	}
 
 	resp := models.ScramChainInfo(req.ArchiveNode)
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func (rc *rewardsCol) pumpInfo(ctx *gin.Context)  {
+	req := &models.CallParams{}
+	if err := utils.GetJSONBody(ctx, req); err != nil {
+		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
+		return
+	}
+
+	resp, err := models.PumpDistInfo(ctx, req.ThisEpoch, req.LastEpoch, req.ArchiveNode)
+	if err != nil {
+		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
+		return
+	}
 
 	ctx.JSON(http.StatusOK, resp)
 }

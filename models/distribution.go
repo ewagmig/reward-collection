@@ -60,6 +60,20 @@ func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bo
 //	
 //}
 
+//SignTxToContract, just for Testing
+//func SignTxToContract(data string) {
+//	archNode := "https://http-testnet.hecochain.com"
+//	client, err := ethclient.Dial(archNode)
+//	if err != nil {
+//		return
+//	}
+//	defer client.Close()
+//
+//
+//
+//}
+
+
 //ContractEventListening to trace the log of event NotifyRewardSummary after the contract notifyReward
 func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 	//use archnode instead for active tracing
@@ -249,6 +263,32 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 		LastEpoch: int64(epEnd),
 	}, nil
 }
+
+func FetchTotalRewardsEPs(ctx context.Context, epStart, epEnd uint64) (*big.Int, error) {
+	eps := []Epoch{}
+	total := []*big.Int{}
+	eplist := []uint64{}
+	for i := epStart; i <= epEnd; i ++ {
+		eplist = append(eplist, i)
+	}
+	deltaEP := epEnd - epStart + 1
+
+	ep := MDB(ctx).Where("epoch_index IN ?", eplist).FindInBatches(&eps, int(deltaEP), func(tx *gorm.DB, batch int) error {
+		//batch processing the results
+		for _, ep := range eps{
+			rwbig, ok := new(big.Int).SetString(ep.TotalFees, 10)
+			if ok{
+				total = append(total, rwbig)
+			}
+		}
+		return nil
+	})
+	distributionlogger.Debugf("The rows affected should be %d", ep.RowsAffected)
+
+	totald := sum(total)
+	return totald, nil
+}
+
 
 //just for UT
 func fetchValDistForUT(ctx context.Context, EPs int, valAddr string, db *gorm.DB) (*ValDist, error) {

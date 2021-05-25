@@ -288,7 +288,7 @@ func TestBigSort(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	archNode := "https://http-testnet.hecochain.com"
-	epIndex := uint64(24910)
+	epIndex := uint64(25037)
 	params := &CallParams{
 		ArchiveNode: archNode,
 		EpochIndex: epIndex,
@@ -321,4 +321,17 @@ func TestCalcu(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(val)
+}
+
+func TestSignGateway(t *testing.T) {
+	archNode := "https://http-testnet.hecochain.com"
+	epStart := uint64(25085)
+	epEnd := uint64(25090)
+	valMapDist, err := PumpDistInfo(context.TODO(), epStart, epEnd, archNode)
+	if err != nil {
+		t.Error(err)
+	}
+
+	sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
+	signGateway(archNode, sysAddr, valMapDist)
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/starslabhq/rewards-collection/errors"
@@ -24,9 +25,11 @@ const (
 
 type CallParams struct {
 	//ArchiveNode could be fetched from consumer input or the default configuration from yaml file
-	ArchiveNode		string	`json:"archive_node,omitempty"`
-	//PeriodBlocks	uint64	`json:"period_blocks,omitempty"`
-	EpochIndex		uint64  `json:"epoch_index,omitempty"`
+	ArchiveNode		string		`json:"archive_node,omitempty"`
+	//PeriodBlocks	uint64		`json:"period_blocks,omitempty"`
+	EpochIndex		uint64  	`json:"epoch_index,omitempty"`
+	ThisEpoch		uint64		`json:"this_epoch,omitempty"`
+	LastEpoch		uint64		`json:"last_epoch,omitempty"`
 }
 
 type ValRewardsInfo struct {
@@ -42,13 +45,16 @@ type ValidatorInfo struct {
 	HBIncoming  string
 }
 
-func GetRewards(params *CallParams) ([]*ValRewardsInfo, error){
-	valsRewardsInfos, err := GetDistributionPerEpoch(params.ArchiveNode, params.EpochIndex)
+func GetRewards(params *CallParams) (*big.Int, error){
+	RewardsInfos, err := FetchTotalRewardsEPs(context.TODO(), params.ThisEpoch, params.LastEpoch)
+	//valsRewardsInfos, err := GetDistributionPerEpoch(params.ArchiveNode, params.EpochIndex)
 	if err != nil {
 		return nil,errors.BadRequestError(errors.EthCallError, err)
 	}
-	return valsRewardsInfos, nil
+	return RewardsInfos, nil
+
 }
+
 
 //GetDistributionPerEpoch to get distribution per epoch
 func GetDistributionPerEpoch(archiveNode string, epochIndex uint64) ([]*ValRewardsInfo, error) {
@@ -386,7 +392,6 @@ func jsonrpcEthCallNotifyAmount(archNode string, valMapDist map[string]*big.Int)
 	for _, v := range valMapDist {
 		dist := hexutil.EncodeBig(v)
 		dist = strings.TrimPrefix(dist, "0x")
-		//todo leftpadding
 		distpad := fmt.Sprintf("%064s", dist)
 		valValues  = valValues + distpad
 	}
@@ -408,18 +413,57 @@ func jsonrpcEthCallNotifyAmount(archNode string, valMapDist map[string]*big.Int)
 
 }
 
+//NotifyAmount
+func getNotifyAmountData(valMapDist map[string]*big.Int) string {
+	//to assemble the data string structure with fn prefix, addr with left padding
+	//validatorContractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
+	//fn notifyRewardAmount() signature in smart contract
+	notifyRewardAmountPrefix := "0xf141d389"
+
+	sliceLength := len(valMapDist)
+	lengthHex := hexutil.EncodeUint64(uint64(sliceLength))
+	lengthHex = strings.TrimPrefix(lengthHex, "0x")
+	lengthPad := fmt.Sprintf("%064s", lengthHex)
+	//to assemble the original data
+	addrPrefix := "000000000000000000000000"
+	var valaddrs string
+	for k := range valMapDist {
+		valkey := addrPrefix + k
+		valaddrs = valaddrs + valkey
+	}
+	//address[] calldata
+	addrCalldata := lengthPad + valaddrs
+
+	var valValues string
+	for _, v := range valMapDist {
+		dist := hexutil.EncodeBig(v)
+		dist = strings.TrimPrefix(dist, "0x")
+		distpad := fmt.Sprintf("%064s", dist)
+		valValues  = valValues + distpad
+	}
+	distcalldata := lengthPad + valValues
+
+	dataOb := valaddrs + addrCalldata + distcalldata
+
+	dataStr := notifyRewardAmountPrefix + dataOb
+	return dataStr
+}
 
 
 //The corresponding archive node should open the rpc "congress" api in addition to other normal apis.
 func rpcCongressGetAllVals(epochIndex uint64, archiveNode string) ([]string, error) {
 	epochEndNum := (epochIndex + 1) * EP -1
-	valnum, err := jsonrpcEthCallGetActVals(archiveNode, utils.EncodeUint64(epochEndNum))
+	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
+	//todo when archNode is ready
+	epochEndNumHex = "latest"
+
+	valnum, err := jsonrpcEthCallGetActVals(archiveNode, epochEndNumHex)
 	if err != nil {
 		return nil,errors.BadRequestError(errors.EthCallError, err)
 	}
 	vals := []string{}
 	//valnum is the pool Length, fetch all the pool info with number iteration
-	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
+
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
 		if err != nil {
