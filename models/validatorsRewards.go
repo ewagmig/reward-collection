@@ -145,11 +145,14 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	valMapCoins := make(map[string]*big.Int)
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
+		if valInfo.Status == fmt.Sprintf("%064s", "0") {
+			continue
+		}
 		if err != nil {
 			return nil,errors.BadRequestError(errors.EthCallError, err)
 		}
 		coinsBig := new(big.Int)
-		valInfo.Coins = removeConZero(valInfo.Coins)
+		//valInfo.Coins = removeConZero(valInfo.Coins)
 		if valInfo.Coins == fmt.Sprintf("%064s", "0") {
 			coinsBig = big.NewInt(0)
 		} else {

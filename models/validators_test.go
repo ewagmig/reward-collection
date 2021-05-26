@@ -324,14 +324,11 @@ func TestCalcu(t *testing.T) {
 }
 
 func TestSignGateway(t *testing.T) {
+	valMapDist := make(map[string]*big.Int)
+	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
+	dataStr := getNotifyAmountData(valMapDist)
+	t.Log(dataStr)
 	archNode := "https://http-testnet.hecochain.com"
-	epStart := uint64(25085)
-	epEnd := uint64(25090)
-	valMapDist, err := PumpDistInfo(context.TODO(), epStart, epEnd, archNode)
-	if err != nil {
-		t.Error(err)
-	}
-
 	sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
 	signGateway(archNode, sysAddr, valMapDist)
 }

@@ -179,14 +179,37 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 
 }
 
+func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config, error) {
+	tlsConfig := tls.Config{}
+
+	// Load client cert
+	cert, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+	if err != nil {
+		return &tlsConfig, err
+	}
+	tlsConfig.Certificates = []tls.Certificate{cert}
+
+	// Load CA cert
+	caCert, err := ioutil.ReadFile(caCertFile)
+	if err != nil {
+		return &tlsConfig, err
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	tlsConfig.RootCAs = caCertPool
+
+	tlsConfig.BuildNameToCertificate()
+	return &tlsConfig, err
+}
+
 
 func addTrust(pool *x509.CertPool, path string) {
-	aCrt, err := ioutil.ReadFile(path)
+	caCrt, err := ioutil.ReadFile(path)
 	if err!= nil {
 		fmt.Println("ReadFile err:",err)
 		return
 	}
-	pool.AppendCertsFromPEM(aCrt)
+	pool.AppendCertsFromPEM(caCrt)
 }
 
 func TwoWaySSlWithClient(serverCrt, clientCrt, clientKey string) *http.Client {
@@ -212,25 +235,3 @@ func TwoWaySSlWithClient(serverCrt, clientCrt, clientKey string) *http.Client {
 	return client
 }
 
-func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config, error) {
-	tlsConfig := tls.Config{}
-
-	// Load client cert
-	cert, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
-	if err != nil {
-		return &tlsConfig, err
-	}
-	tlsConfig.Certificates = []tls.Certificate{cert}
-
-	// Load CA cert
-	caCert, err := ioutil.ReadFile(caCertFile)
-	if err != nil {
-		return &tlsConfig, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-	tlsConfig.RootCAs = caCertPool
-
-	tlsConfig.BuildNameToCertificate()
-	return &tlsConfig, err
-}
