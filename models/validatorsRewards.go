@@ -129,19 +129,16 @@ during the epoch means the block numbers between ecpochIndex * EP, (epochIndex +
 //calDistr: 50% per NumberOfActiveVal, 40% per Staking Coins, 10% per stakingOfCoins
 func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (valsInfo []*ValRewardsInfo, err error) {
 	epochEndNum := (epochIndex + 1) * EP -1
+	//vals is the pool Length, fetch all the pool info with number iteration
+	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
 	//make distribution of sumRewards
 	rewardsPerActNums := new(big.Int)
 	rewardsPerActNums.Div(rewards, new(big.Int).SetInt64(int64(2)))
-	//todo use latest here due to arch node not ready
-	valnum, err := jsonrpcEthCallGetActVals(archiveNode, "latest")
+	valnum, err := jsonrpcEthCallGetActVals(archiveNode, epochEndNumHex)
 	if err != nil {
 		return nil,errors.BadRequestError(errors.EthCallError, err)
 	}
 
-	//vals is the pool Length, fetch all the pool info with number iteration
-	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
-	//todo use "latest" due to arch node not ready
-	epochEndNumHex = "latest"
 	valMapCoins := make(map[string]*big.Int)
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
@@ -472,8 +469,6 @@ func getNotifyAmountData(valMapDist map[string]*big.Int) string {
 func rpcCongressGetAllVals(epochIndex uint64, archiveNode string) ([]string, error) {
 	epochEndNum := (epochIndex + 1) * EP -1
 	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
-	//todo when archNode is ready
-	epochEndNumHex = "latest"
 
 	valnum, err := jsonrpcEthCallGetActVals(archiveNode, epochEndNumHex)
 	if err != nil {
