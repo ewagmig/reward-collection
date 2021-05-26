@@ -152,7 +152,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 			return nil,errors.BadRequestError(errors.EthCallError, err)
 		}
 		coinsBig := new(big.Int)
-		//valInfo.Coins = removeConZero(valInfo.Coins)
+		valInfo.Coins = removeConZero(valInfo.Coins)
 		if valInfo.Coins == fmt.Sprintf("%064s", "0") {
 			coinsBig = big.NewInt(0)
 		} else {

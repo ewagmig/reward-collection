@@ -3,21 +3,57 @@ package models
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sha1sum/aws_signing_client"
 	"github.com/starslabhq/rewards-collection/utils"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 )
+
+// head key, case insensitive
+const (
+	headKeyData          = "date"
+	headKeyXAmzDate      = "X-Amz-Date"
+	headKeyAuthorization = "authorization"
+	headKeyHost          = "host"
+	iSO8601BasicFormat = "20060102T150405Z"
+	iSO8601BasicFormatShort = "20060102"
+)
+var lf = []byte{'\n'}
+
+// url query params
+const (
+	queryKeySignature        = "X-Amz-Signature"
+	queryKeyAlgorithm        = "X-Amz-Algorithm"
+	queryKeyCredential       = "X-Amz-Credential"
+	queryKeyDate             = "X-Amz-Date"
+	queryKeySignatureHeaders = "X-Amz-Signedheaders"
+)
+
+const (
+	aws4HmacSha256Algorithm = "AWS4-HMAC-SHA256"
+)
+
+// Key holds a set of Amazon Security Credentials.
+type Key struct {
+	AccessKey string
+	SecretKey string
+}
+
 
 type Payload struct {
 	Addrs  				[]string  `json:"addrs"`
@@ -87,22 +123,31 @@ func fetchNonce(archnode, addr string) (int, error) {
 
 func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	//var credentials *credentials.Credentials
-	signer := v4.NewSigner(credentials.AnonymousCredentials)
+	//signer := v4.NewSigner(credentials.AnonymousCredentials)
 
 	//var myClient *http.Client
 	var (
-		serverCrt = "/Users/wangming/data/gateway_service/server.cer.pem"
-		clientCrt = "/Users/wangming/data/gateway_service/client.cer.pem"
-		clientKey = "/Users/wangming/data/gateway_service/client.key.pem"
+		//serverCrt = "/Users/wangming/Desktop/ssl/wallet-test-1.sinnet.huobiidc.com.server.crt"
+		//clientCrt = "/Users/wangming/Desktop/ssl/wallet-test-1.sinnet.huobiidc.com.client.crt"
+		//clientKey = "/Users/wangming/Desktop/ssl/wallet-test-1.sinnet.huobiidc.com.client.key"
 	)
 
-	myClient := TwoWaySSlWithClient(serverCrt, clientCrt, clientKey)
-	awsClient, err := aws_signing_client.New(signer, myClient, "signer", "blockchain")
-	if err != nil {
-		return
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			//RootCAs:      pool,
+			//Certificates: []tls.Certificate{cliCrt},
+			InsecureSkipVerify: true,
+		},
 	}
+	myclient := &http.Client{Transport: tr, Timeout: 123 * time.Second}
+
+	//myClient := TwoWaySSlWithClient(serverCrt, clientCrt, clientKey)
+	//awsClient, err := aws_signing_client.New(signer, myClient, "signer", "blockchain")
+	//if err != nil {
+	//	return
+	//}
 	//testing url
-	Url := "https://172.18.23.38:21000/gateway/sign"
+	Url := "https://10.163.132.15:21000/gateway/sign"
 
 	//fetch the contract data
 	dataStr := getNotifyAmountData(valMapDist)
@@ -163,7 +208,21 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	}
 	body := bytes.NewReader(payloadBytes)
 
-	resp, err := awsClient.Post(Url, "application/json", body)
+
+	req1, err := http.NewRequest("POST", Url, body)
+	//req1.Header.Set("Content-Type", "application/json")
+	key := &Key{
+		AccessKey: "gateway",
+		SecretKey: "12345678",
+	}
+
+	sp, err := SignRequestWithAwsV4UseQueryString(req1,key,"blockchain","signer")
+	fmt.Println(sp)
+	resp, err := myclient.Do(req1)
+
+
+
+	//resp, err := awsClient.Post(Url, "application/json", body)
 	if err != nil {
 		return
 	}
@@ -218,20 +277,272 @@ func TwoWaySSlWithClient(serverCrt, clientCrt, clientKey string) *http.Client {
 	// This loads the certificate provided by the server to verify the data returned by the server.
 	addTrust(pool,serverCrt)
 	//Here to load the client's own certificate, to be consistent with the certificate provided to the server, otherwise the server verification will not pass
-	cliCrt, err := tls.LoadX509KeyPair(clientCrt, clientKey)
-	if err != nil {
-		fmt.Println("Loadx509keypair err:", err)
-		return nil
-	}
+	//cliCrt, err := tls.LoadX509KeyPair(clientCrt, clientKey)
+	//if err != nil {
+	//	fmt.Println("Loadx509keypair err:", err)
+	//	return nil
+	//}
 
 	//use the transport for the ssl config
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			RootCAs:      pool,
-			Certificates: []tls.Certificate{cliCrt},
+			//RootCAs:      pool,
+			//Certificates: []tls.Certificate{cliCrt},
+			InsecureSkipVerify: true,
 		},
 	}
 	client := &http.Client{Transport: tr, Timeout: 123 * time.Second}
 	return client
 }
+// Sign ...
+func (k *Key) Sign(t time.Time, region, name string) []byte {
+	h := ghmac([]byte("AWS4"+k.SecretKey), []byte(t.Format(iSO8601BasicFormatShort)))
+	h = ghmac(h, []byte(region))
+	h = ghmac(h, []byte(name))
+	h = ghmac(h, []byte("aws4_request"))
+	return h
+}
+func SignRequestWithAwsV4UseQueryString(req *http.Request, key *Key, region, name string) (sp *SignProcess, err error) {
+	date := req.Header.Get(headKeyData)
+	t := time.Now().UTC()
+	if date != "" {
+		t, err = time.Parse(http.TimeFormat, date)
+		if err != nil {
+			return
+		}
+	}
+	values := req.URL.Query()
+	values.Set(headKeyXAmzDate, t.Format(iSO8601BasicFormat))
 
+	req.Header.Set(headKeyHost, req.Host)
+
+	sp = new(SignProcess)
+	sp.Key = key.Sign(t, region, name)
+
+	values.Set(queryKeyAlgorithm, aws4HmacSha256Algorithm)
+	values.Set(queryKeyCredential, key.AccessKey+"/"+creds(t, region, name))
+	cc := bytes.NewBufferString("")
+	//writeHeaderList(req, nil, cc, false)
+	values.Set(queryKeySignatureHeaders, cc.String())
+	req.URL.RawQuery = values.Encode()
+
+	writeStringToSign(t, req, nil, sp, false, region, name)
+	values = req.URL.Query()
+	values.Set(queryKeySignature, hex.EncodeToString(sp.AllSHA256))
+	req.URL.RawQuery = values.Encode()
+
+	return
+}
+
+func creds(t time.Time, region, name string) string {
+	return t.Format(iSO8601BasicFormatShort) + "/" + region + "/" + name + "/aws4_request"
+}
+
+func gsha256(data []byte) []byte {
+	h := sha256.New()
+	_, _ = h.Write(data)
+	return h.Sum(nil)
+}
+
+func ghmac(key, data []byte) []byte {
+	h := hmac.New(sha256.New, key)
+	_, _ = h.Write(data)
+	return h.Sum(nil)
+}
+
+type SignProcess struct {
+	Key           []byte
+	Body          []byte
+	BodySHA256    []byte
+	Request       []byte
+	RequestSHA256 []byte
+	All           []byte
+	AllSHA256     []byte
+}
+
+func writeHeaderList(r *http.Request, signedHeadersMap map[string]bool, requestData io.Writer, isServer bool) {
+	a := make([]string, 0)
+	for k := range r.Header {
+		if isServer {
+			if _, ok := signedHeadersMap[strings.ToLower(k)]; !ok {
+				continue
+			}
+		}
+		a = append(a, k)
+	}
+	sort.Strings(a)
+	for i, s := range a {
+		if i > 0 {
+			_, _ = requestData.Write([]byte{';'})
+		}
+		_, _ = requestData.Write([]byte(s))
+	}
+}
+
+func writeStringToSign(
+	t time.Time,
+	r *http.Request,
+	signedHeadersMap map[string]bool,
+	sp *SignProcess,
+	isServer bool,
+	region, name string) {
+	lastData := bytes.NewBufferString(aws4HmacSha256Algorithm)
+	lastData.Write(lf)
+
+	lastData.Write([]byte(t.Format(iSO8601BasicFormat)))
+	lastData.Write(lf)
+
+	lastData.Write([]byte(creds(t, region, name)))
+	lastData.Write(lf)
+
+	writeRequest(r, signedHeadersMap, sp, isServer)
+	lastData.WriteString(hex.EncodeToString(sp.RequestSHA256))
+	// fmt.Fprintf(lastData, "%x", sp.RequestSHA256)
+
+	sp.All = lastData.Bytes()
+	sp.AllSHA256 = ghmac(sp.Key, sp.All)
+}
+
+func writeRequest(r *http.Request, signedHeadersMap map[string]bool, sp *SignProcess, isServer bool) {
+	requestData := bytes.NewBufferString("")
+	content := strings.Split(r.Host, ":")
+	r.Header.Set(headKeyHost, content[0])
+
+
+	requestData.Write([]byte(r.Method))
+	requestData.Write(lf)
+
+	writeURI(r, requestData)
+	requestData.Write(lf)
+
+	writeQuery(r, requestData)
+	requestData.Write(lf)
+
+	writeHeader(r, signedHeadersMap, requestData, isServer)
+	requestData.Write(lf)
+	requestData.Write(lf)
+
+	writeHeaderList(r, signedHeadersMap, requestData, isServer)
+	requestData.Write(lf)
+
+	writeBody(r, requestData, sp)
+
+	sp.Request = requestData.Bytes()
+	sp.RequestSHA256 = gsha256(sp.Request)
+}
+
+func writeURI(r *http.Request, requestData io.Writer) {
+	path := r.URL.RequestURI()
+	if r.URL.RawQuery != "" {
+		path = path[:len(path)-len(r.URL.RawQuery)-1]
+	}
+	slash := strings.HasSuffix(path, "/")
+	path = filepath.Clean(path)
+	if path != "/" && slash {
+		path += "/"
+	}
+	_, _ = requestData.Write([]byte(path))
+}
+
+func writeQuery(r *http.Request, requestData io.Writer) {
+	var a []string
+	for k, vs := range r.URL.Query() {
+		k = url.QueryEscape(k)
+		if strings.ToLower(k) == queryKeySignature {
+			continue
+		}
+		for _, v := range vs {
+			if v == "" {
+				a = append(a, k)
+			} else {
+				v = url.QueryEscape(v)
+				a = append(a, k+"="+v)
+			}
+		}
+	}
+	sort.Strings(a)
+	for i, s := range a {
+		if i > 0 {
+			_, _ = requestData.Write([]byte{'&'})
+		}
+		_, _ = requestData.Write([]byte(s))
+	}
+}
+
+func writeHeader(r *http.Request, signedHeadersMap map[string]bool, requestData *bytes.Buffer, isServer bool) {
+	a := make([]string, 0)
+	for k, v := range r.Header {
+		if isServer {
+			if _, ok := signedHeadersMap[strings.ToLower(k)]; !ok {
+				continue
+			}
+		}
+		sort.Strings(v)
+		a = append(a, k+":"+strings.Join(v, ","))
+	}
+	sort.Strings(a)
+	for i, s := range a {
+		if i > 0 {
+			_, _ = requestData.Write(lf)
+		}
+		_, _ = requestData.WriteString(s)
+	}
+}
+
+func writeBody(r *http.Request, requestData io.StringWriter, sp *SignProcess) {
+	var b []byte
+	// If the payload is empty, use the empty string as the input to the SHA256 function
+	// http://docs.amazonwebservices.com/general/latest/gr/sigv4-create-canonical-request.html
+	if r.Body == nil {
+		b = []byte("")
+	} else {
+		var err error
+		b, err = ioutil.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	}
+	sp.Body = b
+
+	sp.BodySHA256 = gsha256(b)
+	_, _ = requestData.WriteString(hex.EncodeToString(sp.BodySHA256))
+}
+
+func (p *SignProcess) String() string {
+	result := new(strings.Builder)
+	fmt.Fprintf(result, "key(hex): %s\n\n", hex.EncodeToString(p.Key))
+	fmt.Fprintf(result, "body:\n%s\n", string(p.Body))
+	fmt.Fprintf(result, "body sha256: %s\n\n", hex.EncodeToString(p.BodySHA256))
+	fmt.Fprintf(result, "request:\n%s\n", string(p.Request))
+	fmt.Fprintf(result, "request sha256: %s\n\n", hex.EncodeToString(p.RequestSHA256))
+	fmt.Fprintf(result, "all:\n%s\n", string(p.All))
+	fmt.Fprintf(result, "all sha256: %s\n", hex.EncodeToString(p.AllSHA256))
+	return result.String()
+}
+func SignRequestWithAwsV4(req *http.Request, key *Key, region, name string) (sp *SignProcess, err error) {
+	date := req.Header.Get(headKeyData)
+	t := time.Now().UTC()
+	if date != "" {
+		t, err = time.Parse(http.TimeFormat, date)
+		if err != nil {
+			return
+		}
+	}
+	req.Header.Set(headKeyXAmzDate, t.Format(iSO8601BasicFormat))
+
+	sp = new(SignProcess)
+	sp.Key = key.Sign(t, region, name)
+	writeStringToSign(t, req, nil, sp, false, region, name)
+
+	auth := bytes.NewBufferString(aws4HmacSha256Algorithm + " ")
+	auth.Write([]byte("Credential=" + key.AccessKey + "/" + creds(t, region, name)))
+	auth.Write([]byte{',', ' '})
+	auth.Write([]byte("SignedHeaders="))
+	writeHeaderList(req, nil, auth, false)
+	auth.Write([]byte{',', ' '})
+	auth.Write([]byte("Signature=" + hex.EncodeToString(sp.AllSHA256)))
+
+	req.Header.Set(headKeyAuthorization, auth.String())
+	return
+}

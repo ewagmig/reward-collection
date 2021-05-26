@@ -332,3 +332,22 @@ func TestSignGateway(t *testing.T) {
 	sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
 	signGateway(archNode, sysAddr, valMapDist)
 }
+
+//func TestSendNotifyAward(t *testing.T) {
+//	archNode := "https://http-testnet.hecochain.com"
+//	valMapDist := make(map[string]*big.Int)
+//	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
+//	dataStr := getNotifyAmountData(valMapDist)
+//	dataByte := []byte(dataStr)
+//	toAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
+//	to := utils.HexToAddress(toAddr)
+//	tx := types.NewTransaction(uint64(0),to, )
+//
+//	client, err := ethclient.Dial(archNode)
+//
+//	client.SendTransaction(context.TODO(),tx)
+//	//err := jsonrpcEthCallNotifyAmount(archNode, valMapDist)
+//	if err != nil {
+//		t.Error(err)
+//	}
+//}
