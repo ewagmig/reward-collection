@@ -41,7 +41,7 @@ const (
 	queryKeyAlgorithm        = "X-Amz-Algorithm"
 	queryKeyCredential       = "X-Amz-Credential"
 	queryKeyDate             = "X-Amz-Date"
-	queryKeySignatureHeaders = "X-Amz-Signedheaders"
+	queryKeySignatureHeaders = "X-Amz-SignedHeaders"
 )
 
 const (
@@ -210,7 +210,8 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 
 
 	req1, err := http.NewRequest("POST", Url, body)
-	//req1.Header.Set("Content-Type", "application/json")
+	req1.Header.Set("content-type", "application/json")
+	req1.Header.Set("host", "signer.blockchain.amazonaws.com")
 	key := &Key{
 		AccessKey: "gateway",
 		SecretKey: "12345678",
@@ -322,7 +323,7 @@ func SignRequestWithAwsV4UseQueryString(req *http.Request, key *Key, region, nam
 	values.Set(queryKeyAlgorithm, aws4HmacSha256Algorithm)
 	values.Set(queryKeyCredential, key.AccessKey+"/"+creds(t, region, name))
 	cc := bytes.NewBufferString("")
-	//writeHeaderList(req, nil, cc, false)
+	writeHeaderList(req, nil, cc, false)
 	values.Set(queryKeySignatureHeaders, cc.String())
 	req.URL.RawQuery = values.Encode()
 

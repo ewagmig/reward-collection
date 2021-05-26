@@ -314,7 +314,7 @@ func TestGetVals(t *testing.T) {
 
 func TestCalcu(t *testing.T) {
 	archNode := "https://http-testnet.hecochain.com"
-	epIndex := uint64(2230)
+	epIndex := uint64(25229)
 	rewards := big.NewInt(100)
 	val, err := calcuDistInEpoch(epIndex, rewards, archNode)
 	if err != nil {

@@ -178,7 +178,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	//act nodes 11 + 10(own nodes)
 	ActCoinsArray := bigSort[len(bigSort)-6:]
 	totalActCoins := sum(ActCoinsArray)
-
+	fmt.Println(totalActCoins.String())
 	//Here the ActNum should be 21
 	ActNum := 21
 	perActReward := new(big.Int)
@@ -246,6 +246,21 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	SBCoinsArray := bigSort[:5]
 	totalSBCoins := sum(SBCoinsArray)
 
+	//select the standby nodes
+	CoinsMapSBAddr := make(map[*big.Int]string)
+	for _, cv := range SBCoinsArray {
+		for _, v := range valsbs {
+			if valMapCoins[v] == cv {
+				CoinsMapSBAddr[cv] = v
+			}
+		}
+	}
+
+	var sbValSet []string
+	for _, v := range CoinsMapSBAddr{
+		sbValSet = append(sbValSet, v)
+	}
+
 	sharePerSBCoin := new(big.Int)
 	//check if all the sb coins equals zero
 	if totalSBCoins.CmpAbs(big.NewInt(0)) == 0 {
@@ -256,7 +271,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 
 
-	for _, sbv := range valsbs{
+	for _, sbv := range sbValSet{
 		valInfo := &ValRewardsInfo{
 			ValAddr: sbv,
 			Rewards: new(big.Int).Mul(sharePerSBCoin, valMapCoins[sbv]),
