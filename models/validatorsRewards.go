@@ -15,6 +15,10 @@ import (
 
 const (
 	EP = uint64(200)
+	actNum_Test = 6
+	stbNum_Tet = 5
+	actNum = 11
+	actNumForDist = 21
 )
 
 /*
@@ -57,7 +61,6 @@ func GetRewards(params *CallParams) (*big.Int, error){
 
 }
 
-
 //GetDistributionPerEpoch to get distribution per epoch
 func GetDistributionPerEpoch(archiveNode string, epochIndex uint64) ([]*ValRewardsInfo, error) {
 	//use the block scraper method to get block fees during one epoch
@@ -69,64 +72,6 @@ func GetDistributionPerEpoch(archiveNode string, epochIndex uint64) ([]*ValRewar
 	}
 	return valRewInfo, nil
 }
-
-//GetRewardsAtBlock return the total rewards at the specific block number
-//func GetRewardsAtBlock(archiveNode string, blkNum uint64) (*big.Int, error) {
-//	//get all the validators
-//	blkhex := utils.EncodeUint64(blkNum)
-//
-//	//get all active validators
-//	allVals, err := jsonrpcEthCallGetActVals(archiveNode, blkhex)
-//	if err != nil {
-//		return nil,errors.BadRequestError(errors.EthCallError, err)
-//	}
-//
-//	//fetch the values from current block number
-//	sumRewardsAtBlk := &big.Int{}
-//	for _, val := range allVals {
-//		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, blkhex, val)
-//		if err != nil {
-//			return nil,errors.BadRequestError(errors.EthCallError, err)
-//		}
-//		//remove zero before next operation
-//		valReward := valInfo.HBIncoming
-//		valReward = removeConZero(valReward)
-//		valReward = "0x" + valReward
-//		rewardsInBig, err := utils.DecodeBig(valReward)
-//		if err != nil {
-//			return nil,errors.BadRequestError(errors.EthCallError, err)
-//		}
-//		sumRewardsAtBlk = sumRewardsAtBlk.Add(sumRewardsAtBlk, rewardsInBig)
-//	}
-//	return sumRewardsAtBlk, nil
-//}
-
-/*
-during the epoch means the block numbers between ecpochIndex * EP, (epochIndex + 1) * EP - 1
-
- */
-
-//getDeltaRewards return the rewards during the epoch number of blocks
-//func getDeltaRewards(epochIndex uint64, archiveNode string) (*big.Int, error) {
-//	epochStartNum := epochIndex * EP
-//	epochEndNum := (epochIndex + 1) * EP - 1
-//
-//	rewardsAtStart, err := GetRewardsAtBlock(archiveNode, epochStartNum)
-//	if err != nil {
-//		return nil,errors.BadRequestError(errors.EthCallError, err)
-//	}
-//
-//	rewardsAtEnd, err := GetRewardsAtBlock(archiveNode, epochEndNum)
-//	if err != nil {
-//		return nil,errors.BadRequestError(errors.EthCallError, err)
-//	}
-//
-//	deltaRewards := &big.Int{}
-//
-//	deltaRewards.Sub(rewardsAtEnd, rewardsAtStart)
-//
-//	return deltaRewards, nil
-//}
 
 //calDistr: 50% per NumberOfActiveVal, 40% per Staking Coins, 10% per stakingOfCoins
 func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (valsInfo []*ValRewardsInfo, err error) {
@@ -159,6 +104,8 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 			if err != nil {
 				return nil,errors.BadRequestError(errors.EthCallError, err)
 			}
+			//change the coins to HT base
+			coinsBig.Div(coinsBig, big.NewInt(1000000000000000000))
 		}
 
 		valMapCoins[valInfo.FeeAddr] = coinsBig
@@ -175,13 +122,11 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 	//todo check with the PM on all active nodes allocation
 	//act nodes 11 + 10(own nodes)
-	//todo no magic numbers
-	ActCoinsArray := bigSort[len(bigSort)-6:]
+	ActCoinsArray := bigSort[len(bigSort)-actNum_Test:]
 	totalActCoins := sum(ActCoinsArray)
-	//fmt.Println(totalActCoins.String())
 	//Here the ActNum should be 21
 	//no magic numbers
-	ActNum := 21
+	ActNum := actNumForDist
 	perActReward := new(big.Int)
 	perActReward.Div(rewardsPerActNums, new(big.Int).SetInt64(int64(ActNum)))
 
@@ -243,10 +188,8 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	rewardsPerStandbyCoins := new(big.Int)
 	rewardsPerStandbyCoins.Div(rewards, new(big.Int).SetInt64(int64(10)))
 
-	//fetch all the rewards perStaking
-	//standby nodes 11
-	//todo magic numbers
-	SBCoinsArray := bigSort[:5]
+	//standby nodes 11 if not enough
+	SBCoinsArray := bigSort[:stbNum_Tet]
 	totalSBCoins := sum(SBCoinsArray)
 
 	//select the standby nodes
@@ -315,7 +258,6 @@ func mockCalcDisInEpoch(epochIndex uint64, rewards *big.Int) (valsInfo []*ValRew
 }
 
 
-//todo: check with the node_voting phase III contract api
 //jsonrpcEthCallGetValInfo used to eth_call validator info, the contract Addr is the proxy contract with abi getPoolWithStatus
 func jsonrpcEthCallGetValInfo(archNode, blkNumHex string, poolId uint64) (*ValidatorInfo, error){
 	//init a new json rpc client
