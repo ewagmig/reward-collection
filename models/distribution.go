@@ -55,11 +55,13 @@ func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bo
 }
 
 //todo signing service gateway service integration
+//todo logic on the resend
 //SendDistribution to send distribution to gateway signing service
 //func SendDistribution() (nonce uint64)  {
-//	
+//	getTransactionReceipt
 //}
 
+//todo check if send or not
 //SignTxToContract, just for Testing
 //func SignTxToContract(data string) {
 //	archNode := "https://http-testnet.hecochain.com"
@@ -74,6 +76,7 @@ func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bo
 //}
 
 
+//todo check send success or not
 //ContractEventListening to trace the log of event NotifyRewardSummary after the contract notifyReward
 func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 	//use archnode instead for active tracing
@@ -111,6 +114,7 @@ func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 		return 0, 0, nil
 	}
 
+	//todo logic
 	distributionlogger.Infof("The input pools number is %d, and the success execution in contract is %d", inLen, okLen)
 	if inLen != okLen {
 		distributionlogger.Errorf("There have been data mismatch during execution in contract!")

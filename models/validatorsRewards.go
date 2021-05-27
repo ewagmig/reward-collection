@@ -45,6 +45,8 @@ type ValidatorInfo struct {
 	HBIncoming  string
 }
 
+//todo check the dial target
+
 func GetRewards(params *CallParams) (*big.Int, error){
 	RewardsInfos, err := FetchTotalRewardsEPs(context.TODO(), params.ThisEpoch, params.LastEpoch)
 	//valsRewardsInfos, err := GetDistributionPerEpoch(params.ArchiveNode, params.EpochIndex)
@@ -173,10 +175,12 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 	//todo check with the PM on all active nodes allocation
 	//act nodes 11 + 10(own nodes)
+	//todo no magic numbers
 	ActCoinsArray := bigSort[len(bigSort)-6:]
 	totalActCoins := sum(ActCoinsArray)
-	fmt.Println(totalActCoins.String())
+	//fmt.Println(totalActCoins.String())
 	//Here the ActNum should be 21
+	//no magic numbers
 	ActNum := 21
 	perActReward := new(big.Int)
 	perActReward.Div(rewardsPerActNums, new(big.Int).SetInt64(int64(ActNum)))
@@ -197,6 +201,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		vals = append(vals, k)
 	}
 
+	//todo secure the rank with lower poolId
 	//actValSet to fetch the active val set
 	actValSet := []string{}
 	CoinsMapActAddr := make(map[*big.Int]string)
@@ -240,6 +245,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 	//fetch all the rewards perStaking
 	//standby nodes 11
+	//todo magic numbers
 	SBCoinsArray := bigSort[:5]
 	totalSBCoins := sum(SBCoinsArray)
 
@@ -277,6 +283,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		valsInfo = append(valsInfo, valInfo)
 	}
 
+	//todo remaining handle
 	//remaining is the remaining of rewards - perActNums - perStakingCoins - perStandbyNums
 	//remainingRewards := new(big.Int)
 	//remainingRewards.Sub(rewards, rewardsPerActNums)

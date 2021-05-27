@@ -235,7 +235,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	}
 
 	fmt.Println(string(respBody))
-	//take some action to parse the response body
+	//todo take some action to parse the response body, get rawTransaction, security check PM
 
 }
 
