@@ -15,8 +15,8 @@ import (
 
 const (
 	EP = uint64(200)
-	actNum_Test = 6
-	stbNum_Tet = 5
+	actNum_Test = 10
+	stbNum_Tet = 6
 	actNum = 11
 	actNumForDist = 21
 )
