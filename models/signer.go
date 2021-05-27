@@ -57,9 +57,9 @@ type Key struct {
 
 type Payload struct {
 	Addrs  				[]string  `json:"addrs"`
-	Data 				ReqData    `json:"data"`
+	Data 				string    `json:"data"`
 	Chain    			string 	  `json:"chain"`
-	EncryptParams  		EncParams    `json:"encrypt_params"`
+	EncryptParams  		string    `json:"encrypt_params"`
 }
 
 type ReqData struct {
@@ -122,32 +122,15 @@ func fetchNonce(archnode, addr string) (int, error) {
 }
 
 func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
-	//var credentials *credentials.Credentials
-	//signer := v4.NewSigner(credentials.AnonymousCredentials)
-
-	//var myClient *http.Client
-	var (
-		//serverCrt = "/Users/wangming/Desktop/ssl/wallet-test-1.sinnet.huobiidc.com.server.crt"
-		//clientCrt = "/Users/wangming/Desktop/ssl/wallet-test-1.sinnet.huobiidc.com.client.crt"
-		//clientKey = "/Users/wangming/Desktop/ssl/wallet-test-1.sinnet.huobiidc.com.client.key"
-	)
-
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			//RootCAs:      pool,
-			//Certificates: []tls.Certificate{cliCrt},
 			InsecureSkipVerify: true,
 		},
 	}
 	myclient := &http.Client{Transport: tr, Timeout: 123 * time.Second}
 
-	//myClient := TwoWaySSlWithClient(serverCrt, clientCrt, clientKey)
-	//awsClient, err := aws_signing_client.New(signer, myClient, "signer", "blockchain")
-	//if err != nil {
-	//	return
-	//}
 	//testing url
-	Url := "https://10.163.132.15:21000/gateway/sign"
+	Url := "https://172.18.23.38:21000/gateway/sign"
 
 	//fetch the contract data
 	dataStr := getNotifyAmountData(valMapDist)
@@ -174,11 +157,11 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		FeeAsset: "ht",
 	}
 
-	//reqDataByte, err := json.Marshal(reqData)
-	//if err != nil {
-	//	return
-	//}
-	//string(reqDataByte)
+	reqDataByte, err := json.Marshal(reqData)
+	if err != nil {
+		return
+	}
+
 
 	encPara := EncParams{
 		Tasks: []Task{
@@ -190,17 +173,17 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		},
 		TxType: "transfer",
 	}
-	//encParaByte, err := json.Marshal(encPara)
-	//if err != nil {
-	//	return
-	//}
-	//string(encParaByte)
+	encParaByte, err := json.Marshal(encPara)
+	if err != nil {
+		return
+	}
+
 
 	data := &Payload{
 		Addrs: []string{sysAddr},
 		Chain: "ht2",
-		Data: reqData,
-		EncryptParams: encPara,
+		Data: string(reqDataByte),
+		EncryptParams: string(encParaByte),
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -211,17 +194,16 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 
 	req1, err := http.NewRequest("POST", Url, body)
 	req1.Header.Set("content-type", "application/json")
-	req1.Header.Set("host", "signer.blockchain.amazonaws.com")
+	req1.Header.Set("Host", "signer.blockchain.amazonaws.com")
 	key := &Key{
 		AccessKey: "gateway",
 		SecretKey: "12345678",
 	}
 
+	req1.Host = "signer.blockchain.amazonaws.com"
 	sp, err := SignRequestWithAwsV4UseQueryString(req1,key,"blockchain","signer")
-	fmt.Println(sp)
+	distributionlogger.Infof("the sp is %v", sp)
 	resp, err := myclient.Do(req1)
-
-
 
 	//resp, err := awsClient.Post(Url, "application/json", body)
 	if err != nil {
@@ -315,7 +297,7 @@ func SignRequestWithAwsV4UseQueryString(req *http.Request, key *Key, region, nam
 	values := req.URL.Query()
 	values.Set(headKeyXAmzDate, t.Format(iSO8601BasicFormat))
 
-	req.Header.Set(headKeyHost, req.Host)
+	//req.Header.Set(headKeyHost, req.Host)
 
 	sp = new(SignProcess)
 	sp.Key = key.Sign(t, region, name)
@@ -369,7 +351,7 @@ func writeHeaderList(r *http.Request, signedHeadersMap map[string]bool, requestD
 				continue
 			}
 		}
-		a = append(a, k)
+		a = append(a, strings.ToLower(k))
 	}
 	sort.Strings(a)
 	for i, s := range a {
@@ -406,8 +388,8 @@ func writeStringToSign(
 
 func writeRequest(r *http.Request, signedHeadersMap map[string]bool, sp *SignProcess, isServer bool) {
 	requestData := bytes.NewBufferString("")
-	content := strings.Split(r.Host, ":")
-	r.Header.Set(headKeyHost, content[0])
+	//content := strings.Split(r.Host, ":")
+	r.Header.Set(headKeyHost, "signer.blockchain.amazonaws.com")
 
 
 	requestData.Write([]byte(r.Method))
@@ -479,7 +461,7 @@ func writeHeader(r *http.Request, signedHeadersMap map[string]bool, requestData 
 			}
 		}
 		sort.Strings(v)
-		a = append(a, k+":"+strings.Join(v, ","))
+		a = append(a, strings.ToLower(k)+":"+strings.Join(v, ","))
 	}
 	sort.Strings(a)
 	for i, s := range a {
