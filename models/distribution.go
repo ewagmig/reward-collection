@@ -114,7 +114,7 @@ func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 		return 0, 0, nil
 	}
 
-	//todo logic
+	//done no need to do extra operation
 	distributionlogger.Infof("The input pools number is %d, and the success execution in contract is %d", inLen, okLen)
 	if inLen != okLen {
 		distributionlogger.Errorf("There have been data mismatch during execution in contract!")
@@ -245,7 +245,7 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 	}
 	deltaEP := epEnd - epStart + 1
 	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
-	rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ?", valAddr, eplist).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+	rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
 		//batch processing the results
 		for _, rw := range rws{
 			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)

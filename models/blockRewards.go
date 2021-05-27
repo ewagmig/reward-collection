@@ -218,8 +218,9 @@ func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error
 		if err := rpcclient.BatchCall(batch); err != nil {
 			return nil, fmt.Errorf("failed to get tx receipts: %v", err)
 		}
+		//todo check the receipt num with txs; BatchCall secure this issue
+
 		for i, tx := range txs {
-			//todo check the receipt num with txs
 			txFee := new(big.Int).Mul(tx.GasPrice(), big.NewInt(int64(batch[i].Result.(*types.Receipt).GasUsed)))
 			gasFee = gasFee.Add(gasFee, txFee)
 		}

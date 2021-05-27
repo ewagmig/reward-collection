@@ -11,7 +11,16 @@ import (
 	"time"
 )
 
-//todo raw tx with nonce store table
+//todo raw tx with nonce store table, new SQL application should submit
+//SendRecord is a table to store the send raw transaction record
+//[Table]
+type SendRecord struct {
+	IDBase
+	RawTx		string			`json:"raw_tx"`
+	Nonce		int64			`json:"nonce"`
+	AtBase
+}
+
 
 // Reward is a reward fetching per validator and store the data in table
 // [TABLE]
@@ -80,6 +89,14 @@ func (ep *Epoch) BeforeCreate(tx *gorm.DB) error {
 	return errors.ConflictErrorf(errors.EPIndexExist, "Epoch Index %d exists", ep.EpochIndex)
 }
 
+func (sr *SendRecord) BeforeCreate(tx *gorm.DB) error {
+	db := tx.First(&SendRecord{}, "nonce = ?", sr.Nonce)
+	if db.Error != nil && db.Error.Error() == "record not found" {
+		return nil
+	}
+
+	return errors.ConflictErrorf(errors.EPIndexExist, "Send record %d exists", sr.Nonce)
+}
 
 //SaveVals to save vals info into database every epoch
 func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error {
@@ -122,6 +139,30 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	return nil
 
 }
+
+func SaveSendRecord(ctx context.Context, rawTx string, nonce int64) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	tx := MDB(ctx).Begin()
+	defer tx.Rollback()
+
+	record := &SendRecord{
+		RawTx: rawTx,
+		Nonce: nonce,
+	}
+
+	if err := tx.Create(record).Error; err != nil {
+		blockslogger.Errorf("Create record error '%v'", err)
+		tx.Rollback()
+		return processDBErr(err, blockslogger, "Failed to store record caused by error %v", err)
+	}
+	tx.Commit()
+	return nil
+}
+
 //SaveValsForUT just for UT testing
 func (helper *blockHelper)SaveValsForUT(ctx context.Context, epochIndex uint64, tx *gorm.DB) error {
 	rewards := getFeesInEPStoreForUT(ctx, epochIndex, tx)
