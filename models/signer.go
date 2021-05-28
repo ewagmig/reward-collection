@@ -190,9 +190,12 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	data := &Payload{
 		Addrs: []string{sysAddr},
 		Chain: "ht2",
-		Data: "",
-		EncryptParams: "{}",
+		Data: "'" + string(reqDataByte) + "'",
+		EncryptParams: "'" + string(encParaByte) + "'",
 	}
+
+	fmt.Println("The string concat is", data.Data, data.EncryptParams)
+
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
 		return

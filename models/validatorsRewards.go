@@ -78,6 +78,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	epochEndNum := (epochIndex + 1) * EP - 1
 	//vals is the pool Length, fetch all the pool info with number iteration
 	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
+	epochEndNumHex = "latest"
 	//make distribution of sumRewards
 	rewardsPerActNums := new(big.Int)
 	rewardsPerActNums.Div(rewards, new(big.Int).SetInt64(int64(2)))
@@ -90,9 +91,9 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	pidMapCoins := make(map[uint64]*big.Int)
 	pidMapVal := make(map[uint64]string)
 	//only fetch 22 nodes for distribution
-	if valnum >= uint64(22) {
-		valnum = uint64(22)
-	}
+	//if valnum >= uint64(22) {
+	//	valnum = uint64(22)
+	//}
 
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
@@ -125,6 +126,12 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	}
 	//sort the big numbers ASC
 	bigSort.Sort()
+
+	//only fetch 22 nodes for distribution
+	if len(bigSort) >= 22 {
+		bigSort = bigSort[len(bigSort)-22:]
+	}
+
 	if len(bigSort) < 11 {
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "Not enough validators in the slice!")
 	}
@@ -170,7 +177,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		var kSort sortutil.BigIntSlice
 		for k := range pidMapCoins {
 			bigK := big.NewInt(int64(k))
-			if pidMapCoins[k] == val_12nd{
+			if pidMapCoins[k].Cmp(val_12nd) == 0{
 				kSort = append(kSort, bigK)
 			}
 		}
@@ -194,7 +201,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 			CoinsMapActAddr := make(map[*big.Int]string)
 			for _, cv := range ActCoinsArray_exc {
 				for _, v := range vals {
-					if valMapCoins[v] == cv {
+					if valMapCoins[v].Cmp(cv) == 0 {
 						CoinsMapActAddr[cv] = v
 					}
 				}
@@ -204,7 +211,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 			}
 
 			//same vals with lower Pid
-			sameNums := ActNum - len(ActCoinsArray_exc)
+			sameNums := 11 - len(ActCoinsArray_exc)
 			SameAct := kSort[:sameNums]
 			for _, v := range SameAct{
 				actValSet = append(actValSet, pidMapVal[v.Uint64()])
