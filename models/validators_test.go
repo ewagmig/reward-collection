@@ -362,3 +362,14 @@ func TestCalcUT(t *testing.T) {
 	reward1.Add(reward1, rewardsPerNum)
 	t.Log(reward1)
 }
+
+func TestSortBigTable(t *testing.T) {
+	slice := []int{1,2,3,4,5,5,6,7}
+	l := len(slice)
+
+	t.Log(slice)
+	t.Log(slice[:l-3])
+	t.Log(slice[l-3:])
+	t.Log(slice[l-5])
+	t.Log(slice[:3])
+}

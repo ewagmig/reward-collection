@@ -75,7 +75,7 @@ func GetDistributionPerEpoch(archiveNode string, epochIndex uint64) ([]*ValRewar
 
 //calDistr: 50% per NumberOfActiveVal, 40% per Staking Coins, 10% per stakingOfCoins
 func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (valsInfo []*ValRewardsInfo, err error) {
-	epochEndNum := (epochIndex + 1) * EP -1
+	epochEndNum := (epochIndex + 1) * EP - 1
 	//vals is the pool Length, fetch all the pool info with number iteration
 	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
 	//make distribution of sumRewards
@@ -87,6 +87,13 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	}
 
 	valMapCoins := make(map[string]*big.Int)
+	pidMapCoins := make(map[uint64]*big.Int)
+	pidMapVal := make(map[uint64]string)
+	//only fetch 22 nodes for distribution
+	if valnum >= uint64(22) {
+		valnum = uint64(22)
+	}
+
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
 		if valInfo.Status == fmt.Sprintf("%064s", "0") {
@@ -109,6 +116,8 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		}
 
 		valMapCoins[valInfo.FeeAddr] = coinsBig
+		pidMapCoins[i] = coinsBig
+		pidMapVal[i] = valInfo.FeeAddr
 	}
 	var bigSort sortutil.BigIntSlice
 	for _, v := range valMapCoins {
@@ -116,16 +125,15 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	}
 	//sort the big numbers ASC
 	bigSort.Sort()
-	//if len(bigSort) <= 11 {
-	//	return nil, errors.BadRequestErrorf(errors.EthCallError, "not enough validators in the slice!")
-	//}
+	if len(bigSort) < 11 {
+		return nil, errors.BadRequestErrorf(errors.EthCallError, "Not enough validators in the slice!")
+	}
 
-	//todo check with the PM on all active nodes allocation
+	//use the mainnet params
 	//act nodes 11 + 10(own nodes)
-	ActCoinsArray := bigSort[len(bigSort)-actNum_Test:]
+	ActCoinsArray := bigSort[len(bigSort) - actNum:]
 	totalActCoins := sum(ActCoinsArray)
 	//Here the ActNum should be 21
-	//no magic numbers
 	ActNum := actNumForDist
 	perActReward := new(big.Int)
 	perActReward.Div(rewardsPerActNums, new(big.Int).SetInt64(int64(ActNum)))
@@ -146,20 +154,77 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 		vals = append(vals, k)
 	}
 
-	//todo secure the rank with lower poolId
 	//actValSet to fetch the active val set
 	actValSet := []string{}
-	CoinsMapActAddr := make(map[*big.Int]string)
-	for _, cv := range ActCoinsArray {
-		for _, v := range vals {
-			if valMapCoins[v] == cv {
-				CoinsMapActAddr[cv] = v
-			}
+	//todo secure the rank with lower poolId
+	//take the edge situation into consideration, scram all the same coins from the bigSort，the 12nd element
+	val_12nd := bigSort[len(bigSort)- actNum -1]
+	var sameV12 []*big.Int
+	//find all the same values
+	for _, v := range bigSort{
+		if v.Cmp(val_12nd) == 0 {
+			sameV12 = append(sameV12, v)
 		}
 	}
+	if len(sameV12) > 0 {
+		var kSort sortutil.BigIntSlice
+		for k := range pidMapCoins {
+			bigK := big.NewInt(int64(k))
+			if pidMapCoins[k] == val_12nd{
+				kSort = append(kSort, bigK)
+			}
+		}
+		//make the sort
+		kSort.Sort()
+		//value bigger than val_12nd
+		var ActCoinsArray_exc sortutil.BigIntSlice
+		for _, v := range bigSort{
+			if v.Cmp(val_12nd) == 1 {
+				ActCoinsArray_exc = append(ActCoinsArray_exc, v)
+			}
+		}
+		//all the elements are same
+		if len(ActCoinsArray_exc) == 0 {
+			ActArray := kSort[:ActNum]
+			for _, v := range ActArray{
+				actValSet = append(actValSet, pidMapVal[v.Uint64()])
+			}
+		} else {
+			//mix them up large number
+			CoinsMapActAddr := make(map[*big.Int]string)
+			for _, cv := range ActCoinsArray_exc {
+				for _, v := range vals {
+					if valMapCoins[v] == cv {
+						CoinsMapActAddr[cv] = v
+					}
+				}
+			}
+			for _, v := range CoinsMapActAddr{
+				actValSet = append(actValSet, v)
+			}
 
-	for _, v := range CoinsMapActAddr{
-		actValSet = append(actValSet, v)
+			//same vals with lower Pid
+			sameNums := ActNum - len(ActCoinsArray_exc)
+			SameAct := kSort[:sameNums]
+			for _, v := range SameAct{
+				actValSet = append(actValSet, pidMapVal[v.Uint64()])
+			}
+
+		}
+	} else {
+		CoinsMapActAddr := make(map[*big.Int]string)
+		for _, cv := range ActCoinsArray {
+			for _, v := range vals {
+				if valMapCoins[v] == cv {
+					CoinsMapActAddr[cv] = v
+				}
+			}
+		}
+
+		for _, v := range CoinsMapActAddr{
+			actValSet = append(actValSet, v)
+		}
+
 	}
 
 
@@ -189,7 +254,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	rewardsPerStandbyCoins.Div(rewards, new(big.Int).SetInt64(int64(10)))
 
 	//standby nodes 11 if not enough
-	SBCoinsArray := bigSort[:stbNum_Tet]
+	SBCoinsArray := bigSort[:len(bigSort)-actNum]
 	totalSBCoins := sum(SBCoinsArray)
 
 	//select the standby nodes
