@@ -314,8 +314,8 @@ func TestGetVals(t *testing.T) {
 
 func TestCalcu(t *testing.T) {
 	archNode := "https://http-testnet.hecochain.com"
-	epIndex := uint64(25340)
-	rewards := big.NewInt(140730554400000000)
+	epIndex := uint64(25361)
+	rewards := big.NewInt(116011615870000000)
 	val, err := calcuDistInEpoch(epIndex, rewards, archNode)
 	if err != nil {
 		t.Error(err)
@@ -331,4 +331,34 @@ func TestSignGateway(t *testing.T) {
 	archNode := "https://http-testnet.hecochain.com"
 	sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
 	signGateway(archNode, sysAddr, valMapDist)
+}
+
+func TestCalcUT(t *testing.T) {
+	var bigSort sortutil.BigIntSlice
+	vals := []*big.Int{big.NewInt(64), big.NewInt(10), big.NewInt(3),big.NewInt(2), big.NewInt(2), big.NewInt(2), big.NewInt(1), big.NewInt(1), big.NewInt(1)}
+	for _, v := range vals {
+		bigSort = append(bigSort, v)
+	}
+	bigSort.Sort()
+	rewards := big.NewInt(116011615870000000)
+
+	rewardsPerNum := big.NewInt(0)
+	rewardsPerNum.Mul(rewards, big.NewInt(1))
+	rewardsPerNum.Div(rewards, big.NewInt(42))
+
+
+	rewardsPerStakingCoins := new(big.Int)
+	rewardsDouble :=new(big.Int)
+	rewardsDouble.Mul(rewards, new(big.Int).SetInt64(int64(2)))
+	rewardsPerStakingCoins.Div(rewardsDouble, new(big.Int).SetInt64(int64(5)))
+
+	totalActCoins := sum(bigSort)
+
+
+	reward1 := big.NewInt(0)
+	reward1.Mul(big.NewInt(64), rewardsPerStakingCoins)
+	reward1.Div(reward1, totalActCoins)
+
+	reward1.Add(reward1, rewardsPerNum)
+	t.Log(reward1)
 }

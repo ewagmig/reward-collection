@@ -144,7 +144,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	contractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
 
 	//assemble the data field for sending transaction
-	reqData := ReqData{
+	reqData := &ReqData{
 		To: contractAddr,
 		ToTag: dataStr,
 		Nonce: nonce,
@@ -157,13 +157,15 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		FeeAsset: "ht",
 	}
 
+
+
 	reqDataByte, err := json.Marshal(reqData)
 	if err != nil {
 		return
 	}
 
 
-	encPara := EncParams{
+	encPara := &EncParams{
 		Tasks: []Task{
 			{TaskId: "0",
 			TaskType: "",
@@ -179,11 +181,17 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	}
 
 
+	fmt.Println(string(reqDataByte), string(encParaByte))
+
+	//testing data with template
+	//testData := "{\\\"to_tag\\\":\\\"0x867904b4000000000000000000000000e8a3dcb34da80f2cc625671ab5d3228ef32b3b580000000000000000000000000000000000000000000000000000000124101100\\\",\\\"nonce\\\":225,\\\"decimal\\\":8,\\\"asset\\\":\\\"husd\\\",\\\"platform\\\":\\\"husd\\\",\\\"from\\\":\\\"e8a3dcb34da80f2cc625671ab5d3228ef32b3b58\\\",\\\"to\\\":\\\"83aa0b40e0cebc79b957b973769dbea55b2c485b\\\",\\\"fee_step\\\":90000,\\\"fee_price\\\":20000000000,\\\"fee_asset\\\":\\\"eth\\\",\\\"amount\\\":0,\\\"chain_id\\\":1337}"
+	//enp := "{\\\"tasks\\\":[{\\\"extra\\\":\\\"{\\\\\\\"fee\\\\\\\":\\\\\\\"100000000\\\\\\\"}\\\",\\\"task_id\\\":\\\"190813173720232242\\\",\\\"user_id\\\":\\\"220\\\",\\\"task_type\\\":\\\"1\\\",\\\"origin_addr\\\":\\\"e8a3dcb34da80f2cc625671ab5d3228ef32b3b58\\\"}],\\\"tx_type\\\":\\\"contract,issue\\\"}"
+
 	data := &Payload{
 		Addrs: []string{sysAddr},
 		Chain: "ht2",
-		Data: string(reqDataByte),
-		EncryptParams: string(encParaByte),
+		Data: "",
+		EncryptParams: "{}",
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -199,6 +207,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		AccessKey: "gateway",
 		SecretKey: "12345678",
 	}
+	//fmt.Println("The request Body is:", string(payloadBytes))
 
 	req1.Host = "signer.blockchain.amazonaws.com"
 	sp, err := SignRequestWithAwsV4UseQueryString(req1,key,"blockchain","signer")

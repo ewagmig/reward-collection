@@ -50,6 +50,7 @@ func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bo
 	*/
 
 	distributionlogger.Infof("Begin to send validator rewards info from epoch %d", epStart)
+	distributionlogger.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
 
 	return true, valmap, nil
 }
