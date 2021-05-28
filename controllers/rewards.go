@@ -58,7 +58,7 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Handler:      rc.pumpInfo,
 		},
 		{
-			Path:         "/pumpDistInfo",
+			Path:         "/getPoolsInfo",
 			Method:       "GET",
 			Handler:      rc.GetPoolsInfo,
 		},
