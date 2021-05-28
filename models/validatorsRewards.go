@@ -78,7 +78,6 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	epochEndNum := (epochIndex + 1) * EP - 1
 	//vals is the pool Length, fetch all the pool info with number iteration
 	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
-	epochEndNumHex = "latest"
 	//make distribution of sumRewards
 	rewardsPerActNums := new(big.Int)
 	rewardsPerActNums.Div(rewards, new(big.Int).SetInt64(int64(2)))
@@ -90,10 +89,6 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	valMapCoins := make(map[string]*big.Int)
 	pidMapCoins := make(map[uint64]*big.Int)
 	pidMapVal := make(map[uint64]string)
-	//only fetch 22 nodes for distribution
-	//if valnum >= uint64(22) {
-	//	valnum = uint64(22)
-	//}
 
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
@@ -567,4 +562,47 @@ func removeConZero(str string) (string) {
 		}
 	}
 	return str[index:]
+}
+
+func FecthPoolLenInfo(epochIndex uint64, archiveNode string) (valsInfo []*ValidatorInfo, err error) {
+	epochEndNum := (epochIndex + 1) * EP - 1
+	//vals is the pool Length, fetch all the pool info with number iteration
+	epochEndNumHex := hexutil.EncodeUint64(epochEndNum)
+	valnum, err := jsonrpcEthCallGetActVals(archiveNode, epochEndNumHex)
+	if err != nil {
+		return nil,errors.BadRequestError(errors.EthCallError, err)
+	}
+
+	valMapCoins := make(map[string]*big.Int)
+	pidMapCoins := make(map[uint64]*big.Int)
+	pidMapVal := make(map[uint64]string)
+
+	for i := uint64(0); i < valnum; i ++ {
+		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
+		if valInfo.Status == fmt.Sprintf("%064s", "0") {
+			continue
+		}
+		if err != nil {
+			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+		coinsBig := new(big.Int)
+		valInfo.Coins = removeConZero(valInfo.Coins)
+		if valInfo.Coins == fmt.Sprintf("%064s", "0") {
+			coinsBig = big.NewInt(0)
+		} else {
+			coinsBig, err = hexutil.DecodeBig("0x"+valInfo.Coins)
+			if err != nil {
+				return nil,errors.BadRequestError(errors.EthCallError, err)
+			}
+			//change the coins to HT base
+			coinsBig.Div(coinsBig, big.NewInt(1000000000000000000))
+		}
+
+		valsInfo = append(valsInfo, valInfo)
+
+		valMapCoins[valInfo.FeeAddr] = coinsBig
+		pidMapCoins[i] = coinsBig
+		pidMapVal[i] = valInfo.FeeAddr
+	}
+	return valsInfo, nil
 }

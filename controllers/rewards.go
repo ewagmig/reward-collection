@@ -57,6 +57,11 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Method:       "GET",
 			Handler:      rc.pumpInfo,
 		},
+		{
+			Path:         "/pumpDistInfo",
+			Method:       "GET",
+			Handler:      rc.GetPoolsInfo,
+		},
 		//{
 		//	Path:         "/stopDistribution",
 		//	Method:       "POST",
@@ -125,6 +130,24 @@ func (rc *rewardsCol) pumpInfo(ctx *gin.Context)  {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func (rc *rewardsCol) GetPoolsInfo(ctx *gin.Context)  {
+	req := &models.CallParams{}
+	if err := utils.GetJSONBody(ctx, req); err != nil {
+		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
+		return
+	}
+
+	resp, err := models.FecthPoolLenInfo(req.EpochIndex, req.ArchiveNode)
+	if err != nil {
+		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
+
 
 //just for liveness check
 func (rc *rewardsCol) getInfo(ctx *gin.Context)  {

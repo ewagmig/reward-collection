@@ -48,6 +48,11 @@ const (
 	aws4HmacSha256Algorithm = "AWS4-HMAC-SHA256"
 )
 
+const (
+	AccessKey = "gateway"
+	SecretKey = "12345678"
+)
+
 // Key holds a set of Amazon Security Credentials.
 type Key struct {
 	AccessKey string
@@ -77,6 +82,7 @@ type ReqData struct {
 	//GasPrice here
 	FeePrice    string			`json:"fee_price"`
 	FeeAsset	string			`json:"fee_asset"`
+	Amount		string			`json:"amount"`
 }
 
 type EncParams struct {
@@ -155,6 +161,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		FeeStep: "200000",
 		FeePrice: "40000000000",
 		FeeAsset: "ht",
+		Amount: "100000",
 	}
 
 
@@ -190,13 +197,14 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	data := &Payload{
 		Addrs: []string{sysAddr},
 		Chain: "ht2",
-		Data: "'" + string(reqDataByte) + "'",
-		EncryptParams: "'" + string(encParaByte) + "'",
+		Data: string(reqDataByte),
+		EncryptParams: string(encParaByte),
 	}
 
 	fmt.Println("The string concat is", data.Data, data.EncryptParams)
 
 	payloadBytes, err := json.Marshal(data)
+	fmt.Println("The request body is:", string(payloadBytes))
 	if err != nil {
 		return
 	}
@@ -207,8 +215,8 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 	req1.Header.Set("content-type", "application/json")
 	req1.Header.Set("Host", "signer.blockchain.amazonaws.com")
 	key := &Key{
-		AccessKey: "gateway",
-		SecretKey: "12345678",
+		AccessKey: AccessKey,
+		SecretKey: SecretKey,
 	}
 	//fmt.Println("The request Body is:", string(payloadBytes))
 
