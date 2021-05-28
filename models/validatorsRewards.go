@@ -123,13 +123,15 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	bigSort.Sort()
 
 	//only fetch 22 nodes for distribution
+	if len(bigSort) < 11 {
+		return nil, errors.BadRequestErrorf(errors.EthCallError, "Not enough validators in the slice!")
+	}
+
+
 	if len(bigSort) >= 22 {
 		bigSort = bigSort[len(bigSort)-22:]
 	}
 
-	if len(bigSort) < 11 {
-		return nil, errors.BadRequestErrorf(errors.EthCallError, "Not enough validators in the slice!")
-	}
 
 	//use the mainnet params
 	//act nodes 11 + 10(own nodes)
@@ -150,11 +152,28 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	sharePerCoin := new(big.Int)
 	sharePerCoin.Div(rewardsPerStakingCoins, totalCoinsInEpoch)
 
-	//fetch standby vals
-	vals := []string{}
+	//fetch all vals
+	vs := []string{}
 	for k := range valMapCoins{
-		vals = append(vals, k)
+		vs = append(vs, k)
 	}
+
+	vals := []string{}
+	{
+		vsMapCoins := make(map[string]*big.Int)
+		for _, cv := range bigSort {
+			for _, v := range vs {
+				if valMapCoins[v].Cmp(cv) == 0 {
+					vsMapCoins[v] = cv
+				}
+			}
+		}
+
+		for k := range vsMapCoins{
+			vals = append(vals, k)
+		}
+	}
+
 
 	//actValSet to fetch the active val set
 	actValSet := []string{}
@@ -192,17 +211,18 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 				actValSet = append(actValSet, pidMapVal[v.Uint64()])
 			}
 		} else {
-			//mix them up large number
-			CoinsMapActAddr := make(map[*big.Int]string)
+			//mix them up large number can not calculate here like this
+			//CoinsMapActAddr := make(map[*big.Int]string)
+			vMapCoins := make(map[string]*big.Int)
 			for _, cv := range ActCoinsArray_exc {
 				for _, v := range vals {
 					if valMapCoins[v].Cmp(cv) == 0 {
-						CoinsMapActAddr[cv] = v
+						vMapCoins[v] = cv
 					}
 				}
 			}
-			for _, v := range CoinsMapActAddr{
-				actValSet = append(actValSet, v)
+			for k := range vMapCoins{
+				actValSet = append(actValSet, k)
 			}
 
 			//same vals with lower Pid
@@ -214,17 +234,18 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 		}
 	} else {
-		CoinsMapActAddr := make(map[*big.Int]string)
+		//CoinsMapActAddr := make(map[*big.Int]string)
+		vMapCoins := make(map[string]*big.Int)
 		for _, cv := range ActCoinsArray {
 			for _, v := range vals {
-				if valMapCoins[v] == cv {
-					CoinsMapActAddr[cv] = v
+				if valMapCoins[v].Cmp(cv) == 0 {
+					vMapCoins[v] = cv
 				}
 			}
 		}
 
-		for _, v := range CoinsMapActAddr{
-			actValSet = append(actValSet, v)
+		for k := range vMapCoins{
+			actValSet = append(actValSet, k)
 		}
 
 	}
@@ -260,18 +281,19 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	totalSBCoins := sum(SBCoinsArray)
 
 	//select the standby nodes
-	CoinsMapSBAddr := make(map[*big.Int]string)
+	vbMapCoins := make(map[string]*big.Int)
+	//CoinsMapSBAddr := make(map[*big.Int]string)
 	for _, cv := range SBCoinsArray {
 		for _, v := range valsbs {
-			if valMapCoins[v] == cv {
-				CoinsMapSBAddr[cv] = v
+			if valMapCoins[v].Cmp(cv) == 0 {
+				vbMapCoins[v] = cv
 			}
 		}
 	}
 
 	var sbValSet []string
-	for _, v := range CoinsMapSBAddr{
-		sbValSet = append(sbValSet, v)
+	for k := range vbMapCoins{
+		sbValSet = append(sbValSet, k)
 	}
 
 	sharePerSBCoin := new(big.Int)

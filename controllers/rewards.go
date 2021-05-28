@@ -62,6 +62,11 @@ func (rc *rewardsCol) Routes() []*server.Router {
 			Method:       "GET",
 			Handler:      rc.GetPoolsInfo,
 		},
+		{
+			Path:         "/getDistEpoch",
+			Method:       "GET",
+			Handler:      rc.GetDistEpoch,
+		},
 		//{
 		//	Path:         "/stopDistribution",
 		//	Method:       "POST",
@@ -146,6 +151,23 @@ func (rc *rewardsCol) GetPoolsInfo(ctx *gin.Context)  {
 
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func (rc *rewardsCol) GetDistEpoch(ctx *gin.Context)  {
+	req := &models.CallParams{}
+	if err := utils.GetJSONBody(ctx, req); err != nil {
+		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
+		return
+	}
+
+	resp, err := models.GetDistributionPerEpoch(req.ArchiveNode, req.EpochIndex)
+	if err != nil {
+		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
 
 
 
