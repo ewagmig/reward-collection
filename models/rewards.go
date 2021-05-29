@@ -18,6 +18,8 @@ type SendRecord struct {
 	IDBase
 	RawTx		string			`json:"raw_tx"`
 	Nonce		int64			`json:"nonce"`
+	ThisEpoch	int64			`json:"this_epoch"`
+	LastEpoch	int64			`json:"last_epoch"`
 	AtBase
 }
 
@@ -258,7 +260,6 @@ func saveValReward(ctx context.Context, valInfo *ValRewardsInfo) error {
 func saveEpoch(ctx context.Context, info *BlockchainInfo) error {
 	blockslogger.Infof("[Epoch Index %d ] Start to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
 	tx := MDB(ctx).Begin()
-	//todo some fallback mechanism
 	defer tx.Rollback()
 
 	//take action to parse table
@@ -274,7 +275,6 @@ func saveEpoch(ctx context.Context, info *BlockchainInfo) error {
 		tx.Rollback()
 		return processDBErr(err, blockslogger, "Failed to create epoch caused by error %v", err)
 	}
-	//todo some fallback mechanism
 	tx.Commit()
 	blockslogger.Infof("[Epoch Index %d ] Finish to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
 

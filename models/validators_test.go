@@ -327,7 +327,7 @@ func TestSignGateway(t *testing.T) {
 	valMapDist := make(map[string]*big.Int)
 	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
 	dataStr := getNotifyAmountData(valMapDist)
-	t.Log(dataStr)
+	t.Log("The data string is", dataStr)
 	archNode := "https://http-testnet.hecochain.com"
 	sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
 	signGateway(archNode, sysAddr, valMapDist)
@@ -368,8 +368,9 @@ func TestSortBigTable(t *testing.T) {
 	l := len(slice)
 
 	t.Log(slice)
-	t.Log(slice[:l-3])
-	t.Log(slice[l-3:])
-	t.Log(slice[l-5])
-	t.Log(slice[:3])
+	//t.Log(slice[:l-3])
+	//t.Log(slice[l-3:])
+	//t.Log(slice[l-5])
+	//t.Log(slice[:3])
+	t.Log(slice[l-1:])
 }

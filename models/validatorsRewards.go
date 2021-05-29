@@ -49,7 +49,42 @@ type ValidatorInfo struct {
 	HBIncoming  string
 }
 
-//todo check the dial target
+//todo check the dial target, checkout with the archive node access
+func BestArchNode(archNodes []string) (string, error) {
+	if len(archNodes) == 0 {
+		blockslogger.Errorf("The Arch Nodes candidate list is empty!")
+		return "", errors.BadRequestError(errors.EthCallError, "The Arch node candidate list is empty!")
+	}
+
+	archMapHeight := make(map[string]*big.Int)
+	for _, v := range archNodes{
+		blkHeight, err := getBlockNumber(v)
+		if err != nil {
+			blockslogger.Errorf("This Arch Nodes Fetch height error!")
+			blkHeight = big.NewInt(0)
+		}
+		archMapHeight[v] = blkHeight
+	}
+
+	var bigSort sortutil.BigIntSlice
+	for _, v := range archMapHeight{
+		bigSort = append(bigSort, v)
+	}
+	bigSort.Sort()
+
+	//get the last number
+	heightBig := bigSort[len(bigSort)-1]
+
+	var archNode string
+	for k := range archMapHeight{
+		if archMapHeight[k].Cmp(heightBig) == 0 {
+			archNode = k
+			break
+		}
+	}
+	return archNode, nil
+}
+
 
 func GetRewards(params *CallParams) (*big.Int, error){
 	RewardsInfos, err := FetchTotalRewardsEPs(context.TODO(), params.ThisEpoch, params.LastEpoch)

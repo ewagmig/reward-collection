@@ -6,7 +6,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -51,6 +50,7 @@ const (
 const (
 	AccessKey = "gateway"
 	SecretKey = "12345678"
+	AwsV4SigHeader = "signer.blockchain.amazonaws.com"
 )
 
 // Key holds a set of Amazon Security Credentials.
@@ -127,7 +127,7 @@ func fetchNonce(archnode, addr string) (int, error) {
 	return int(nonce), nil
 }
 
-func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
+func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encResp Response, err error)  {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -158,19 +158,17 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		Decimal: 18,
 		Platform: "starlabsne3",
 		From: sysAddr,
-		FeeStep: "200000",
+		//GasLimit 1000000
+		FeeStep: "1000000",
+		//GasPrice 40GWei
 		FeePrice: "40000000000",
 		FeeAsset: "ht",
-		Amount: "100000",
+		Amount: "0",
 	}
-
-
-
 	reqDataByte, err := json.Marshal(reqData)
 	if err != nil {
 		return
 	}
-
 
 	encPara := &EncParams{
 		Tasks: []Task{
@@ -187,29 +185,17 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		return
 	}
 
-
-	fmt.Println(string(reqDataByte), string(encParaByte))
-
-	//testing data with template
-	//testData := "{\\\"to_tag\\\":\\\"0x867904b4000000000000000000000000e8a3dcb34da80f2cc625671ab5d3228ef32b3b580000000000000000000000000000000000000000000000000000000124101100\\\",\\\"nonce\\\":225,\\\"decimal\\\":8,\\\"asset\\\":\\\"husd\\\",\\\"platform\\\":\\\"husd\\\",\\\"from\\\":\\\"e8a3dcb34da80f2cc625671ab5d3228ef32b3b58\\\",\\\"to\\\":\\\"83aa0b40e0cebc79b957b973769dbea55b2c485b\\\",\\\"fee_step\\\":90000,\\\"fee_price\\\":20000000000,\\\"fee_asset\\\":\\\"eth\\\",\\\"amount\\\":0,\\\"chain_id\\\":1337}"
-	//enp := "{\\\"tasks\\\":[{\\\"extra\\\":\\\"{\\\\\\\"fee\\\\\\\":\\\\\\\"100000000\\\\\\\"}\\\",\\\"task_id\\\":\\\"190813173720232242\\\",\\\"user_id\\\":\\\"220\\\",\\\"task_type\\\":\\\"1\\\",\\\"origin_addr\\\":\\\"e8a3dcb34da80f2cc625671ab5d3228ef32b3b58\\\"}],\\\"tx_type\\\":\\\"contract,issue\\\"}"
-
 	data := &Payload{
 		Addrs: []string{sysAddr},
 		Chain: "ht2",
 		Data: string(reqDataByte),
 		EncryptParams: string(encParaByte),
 	}
-
-	fmt.Println("The string concat is", data.Data, data.EncryptParams)
-
 	payloadBytes, err := json.Marshal(data)
-	fmt.Println("The request body is:", string(payloadBytes))
 	if err != nil {
 		return
 	}
 	body := bytes.NewReader(payloadBytes)
-
 
 	req1, err := http.NewRequest("POST", Url, body)
 	req1.Header.Set("content-type", "application/json")
@@ -218,14 +204,11 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		AccessKey: AccessKey,
 		SecretKey: SecretKey,
 	}
-	//fmt.Println("The request Body is:", string(payloadBytes))
 
-	req1.Host = "signer.blockchain.amazonaws.com"
-	sp, err := SignRequestWithAwsV4UseQueryString(req1,key,"blockchain","signer")
-	distributionlogger.Infof("the sp is %v", sp)
+	req1.Host = AwsV4SigHeader
+	_, err = SignRequestWithAwsV4UseQueryString(req1,key,"blockchain","signer")
+	//distributionlogger.Infof("the sp is %v", sp)
 	resp, err := myclient.Do(req1)
-
-	//resp, err := awsClient.Post(Url, "application/json", body)
 	if err != nil {
 		return
 	}
@@ -236,66 +219,23 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int)  {
 		return
 	}
 
-	fmt.Println(string(respBody))
-	//todo take some action to parse the response body, get rawTransaction, security check PM
-
-}
-
-func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config, error) {
-	tlsConfig := tls.Config{}
-
-	// Load client cert
-	cert, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
-	if err != nil {
-		return &tlsConfig, err
-	}
-	tlsConfig.Certificates = []tls.Certificate{cert}
-
-	// Load CA cert
-	caCert, err := ioutil.ReadFile(caCertFile)
-	if err != nil {
-		return &tlsConfig, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-	tlsConfig.RootCAs = caCertPool
-
-	tlsConfig.BuildNameToCertificate()
-	return &tlsConfig, err
-}
-
-
-func addTrust(pool *x509.CertPool, path string) {
-	caCrt, err := ioutil.ReadFile(path)
-	if err!= nil {
-		fmt.Println("ReadFile err:",err)
+	//fmt.Println(string(respBody))
+	//unmarshal the respBody
+	var result Response
+	err = json.Unmarshal(respBody, &result)
+	if err != nil{
 		return
 	}
-	pool.AppendCertsFromPEM(caCrt)
-}
 
-func TwoWaySSlWithClient(serverCrt, clientCrt, clientKey string) *http.Client {
-	//The sslfile dir is the directory for store some files after decryption
-	pool := x509.NewCertPool()
-	// This loads the certificate provided by the server to verify the data returned by the server.
-	addTrust(pool,serverCrt)
-	//Here to load the client's own certificate, to be consistent with the certificate provided to the server, otherwise the server verification will not pass
-	//cliCrt, err := tls.LoadX509KeyPair(clientCrt, clientKey)
-	//if err != nil {
-	//	fmt.Println("Loadx509keypair err:", err)
-	//	return nil
-	//}
-
-	//use the transport for the ssl config
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			//RootCAs:      pool,
-			//Certificates: []tls.Certificate{cliCrt},
-			InsecureSkipVerify: true,
-		},
+	//check the signing result is returned with true status
+	if !result.Result{
+		return
 	}
-	client := &http.Client{Transport: tr, Timeout: 123 * time.Second}
-	return client
+
+	//fmt.Println("The encrypted data is:", result.Data.EncryptData)
+	encResp = result
+	return encResp, nil
+
 }
 // Sign ...
 func (k *Key) Sign(t time.Time, region, name string) []byte {
