@@ -190,6 +190,10 @@ func PumpDistInfo(ctx context.Context, epStart, epEnd uint64, archiveNode string
 		if err != nil {
 			return nil, err
 		}
+		//filter the value of zero distribution
+		if valdis.Distribution.Cmp(big.NewInt(0)) == 0 {
+			continue
+		}
 		valMapDist[val] = valdis.Distribution
 	}
 

@@ -92,11 +92,12 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 
 	for i := uint64(0); i < valnum; i ++ {
 		valInfo, err := jsonrpcEthCallGetValInfo(archiveNode, epochEndNumHex, i)
-		if valInfo.Status == fmt.Sprintf("%064s", "0") {
-			continue
-		}
 		if err != nil {
 			return nil,errors.BadRequestError(errors.EthCallError, err)
+		}
+
+		if valInfo.Status == fmt.Sprintf("%064s", "0") {
+			continue
 		}
 		coinsBig := new(big.Int)
 		valInfo.Coins = removeConZero(valInfo.Coins)
@@ -520,6 +521,11 @@ func rpcCongressGetAllVals(epochIndex uint64, archiveNode string) ([]string, err
 		if err != nil {
 			return nil,errors.BadRequestError(errors.EthCallError, err)
 		}
+		//add the val status filter when pimping
+		if valInfo.Status == fmt.Sprintf("%064s", "0") {
+			continue
+		}
+
 		vals = append(vals, valInfo.FeeAddr)
 	}
 
