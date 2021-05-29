@@ -17,7 +17,9 @@ import (
 type SendRecord struct {
 	IDBase
 	RawTx		string			`json:"raw_tx"`
+	TxHash      string			`json:"tx_hash"`
 	Nonce		int64			`json:"nonce"`
+	GasPrice    int64			`json:"gas_price"`
 	ThisEpoch	int64			`json:"this_epoch"`
 	LastEpoch	int64			`json:"last_epoch"`
 	AtBase
@@ -92,7 +94,7 @@ func (ep *Epoch) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (sr *SendRecord) BeforeCreate(tx *gorm.DB) error {
-	db := tx.First(&SendRecord{}, "nonce = ?", sr.Nonce)
+	db := tx.First(&SendRecord{}, "raw_tx = ?", sr.RawTx)
 	if db.Error != nil && db.Error.Error() == "record not found" {
 		return nil
 	}
@@ -142,7 +144,7 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 
 }
 
-func SaveSendRecord(ctx context.Context, rawTx string, nonce int64) error {
+func SaveSendRecord(ctx context.Context, record *SendRecord) error {
 	select {
 	default:
 	case <-ctx.Done():
@@ -151,15 +153,29 @@ func SaveSendRecord(ctx context.Context, rawTx string, nonce int64) error {
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
-	record := &SendRecord{
-		RawTx: rawTx,
-		Nonce: nonce,
-	}
-
 	if err := tx.Create(record).Error; err != nil {
 		blockslogger.Errorf("Create record error '%v'", err)
 		tx.Rollback()
 		return processDBErr(err, blockslogger, "Failed to store record caused by error %v", err)
+	}
+	tx.Commit()
+	return nil
+}
+
+//todo update the record after resending
+func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	tx := MDB(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := tx.Updates(record).Where("nonce = ?", record.Nonce).Error; err != nil {
+		blockslogger.Errorf("Update record error '%v'", err)
+		tx.Rollback()
+		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
 	}
 	tx.Commit()
 	return nil

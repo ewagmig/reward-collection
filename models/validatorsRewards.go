@@ -50,10 +50,10 @@ type ValidatorInfo struct {
 }
 
 //todo check the dial target, checkout with the archive node access
-func BestArchNode(archNodes []string) (string, error) {
+func BestArchNode(archNodes []string) (string) {
 	if len(archNodes) == 0 {
 		blockslogger.Errorf("The Arch Nodes candidate list is empty!")
-		return "", errors.BadRequestError(errors.EthCallError, "The Arch node candidate list is empty!")
+		return ""
 	}
 
 	archMapHeight := make(map[string]*big.Int)
@@ -82,7 +82,7 @@ func BestArchNode(archNodes []string) (string, error) {
 			break
 		}
 	}
-	return archNode, nil
+	return archNode
 }
 
 

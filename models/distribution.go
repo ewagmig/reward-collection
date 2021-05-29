@@ -1,21 +1,45 @@
 package models
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/op/go-logging"
+	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"math/big"
+	"net/http"
 	"strings"
+	"sync"
+	"time"
 )
 
 var (
 	distributionlogger = logging.MustGetLogger("rewards.distribution.models")
 	EPDuration = int64(36)
+	//sysAddr should be provided by gateway service side
+	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
+	default40GWei = int64(40000000000)
+
+	//todo integration with validator
+	validatorUrl = "abdc/cross/check"
+	validatorAccessKey = Key{
+		AccessKey: "abc",
+		SecretKey: "xxxx",
+	}
+	//todo archNode candidates connection before online
+	archNodes = []string{
+		"47.243.52.187:8545",
+		"47.242.228.39:8545",
+	}
 )
 
 type ValDist struct {
@@ -25,59 +49,239 @@ type ValDist struct {
 	LastEpoch		int64
 }
 
-//[]ValMapRewards is used to send to contract for rewards distribution, two slices: []string{}, []big.Int
 type ValMapRewards struct {
 	ValAddr			string
 	Rewards 		*big.Int
 }
 
-//PreSend to pump distribution from database, then take some check before sending
-func PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bool, map[string]*big.Int, error){
-	valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
+type sendHelper struct {
+	ArchNode string
+	EpochEnd int64
+	GasPrice int64
+	mu    sync.RWMutex
+}
+
+func newSendHelper() *sendHelper {
+	archNode := viper.GetString("server.archiveNodeUrl")
+	if len(archNode) == 0 {
+		blockslogger.Errorf("No archNode config!")
+		return nil
+	}
+
+	return &sendHelper{
+		ArchNode: archNode,
+		GasPrice: default40GWei,
+	}
+}
+
+func helperResend(gasPrice int64, archNode string) *sendHelper {
+	return &sendHelper{
+		GasPrice: gasPrice,
+		ArchNode: archNode,
+	}
+}
+
+//fetchRawTx
+func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, archiveNode string) (string, string, error) {
+	valmap, err := PumpDistInfo(ctx, epStart, epEnd, helper.ArchNode)
 	if err != nil {
 		distributionlogger.Errorf("Fetch validator distribution error %v", err)
-		return false, nil, err
+		return "", "", err
 	}
 	if len(valmap) == 0 {
 		distributionlogger.Errorf("Fetch validator distribution error %v", err)
-		return false, nil, err
+		return "", "", err
+	}
+
+	//todo some basic check before sending
+	//get the gateway encrypted data
+	encData, err := signGateway(archiveNode, sysAddr, valmap, helper.GasPrice)
+	if err != nil {
+		distributionlogger.Errorf("Fetch enc data from gateway service error %v", err)
+		return "", "", err
+	}
+
+	//todo post the encData to validator service
+	rawTx, _ := ValidateEnc(encData, validatorUrl, validatorAccessKey)
+
+	if len(rawTx) == 0 {
+		return "", "", errors.BadRequestErrorf(errors.EthCallError, "The rawTx is empty")
+	}
+	return rawTx, encData.Data.Extra.TxHash, nil
+}
+
+//PreSend to pump distribution from database, then take some check before sending
+func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bool, error){
+	valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
+	if err != nil {
+		distributionlogger.Errorf("Fetch validator distribution error %v", err)
+		return false, err
+	}
+	if len(valmap) == 0 {
+		distributionlogger.Errorf("Fetch validator distribution error %v", err)
+		return false, err
+	}
+
+	rawTx, txHash, err := helper.fetchRawTx(ctx, epStart, epEnd, archiveNode)
+	if err != nil {
+		return false, err
+	}
+
+	//fetch the pending nonce for sending transaction
+	nonce, err := fetchPendingNonce(archiveNode, sysAddr)
+	if err != nil {
+		return false, err
+	}
+
+	sr := &SendRecord{
+		RawTx: rawTx,
+		Nonce: int64(nonce),
+		ThisEpoch: int64(epStart),
+		LastEpoch: int64(epEnd),
+		GasPrice: default40GWei,
+		TxHash: txHash,
+	}
+
+	//save the send record
+	distributionlogger.Infof("Beigin to save the send record")
+	err = SaveSendRecord(context.TODO(), sr)
+	if err != nil {
+		return false, err
+	}
+
+	distributionlogger.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
+	return true, nil
+}
+
+type ValidatorResp struct {
+	RawTx     string       `json:"raw_tx"`
+	OK 		  bool		   `json:"ok"`
+}
+
+func ValidateEnc(encData Response, targetUrl string, accessKey Key) (rawTx string, ok bool) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	myclient := &http.Client{Transport: tr, Timeout: 123 * time.Second}
+
+	payloadBytes, err := json.Marshal(&encData)
+	if err != nil {
+		return
+	}
+	body := bytes.NewReader(payloadBytes)
+	//set the request header according to aws v4 signature
+	req1, err := http.NewRequest("POST", targetUrl, body)
+	req1.Header.Set("content-type", "application/json")
+	req1.Header.Set("Host", "signer.blockchain.amazonaws.com")
+	req1.Host = AwsV4SigHeader
+	_, err = SignRequestWithAwsV4UseQueryString(req1,&accessKey,"blockchain","signer")
+
+	//Post the response
+	resp, err := myclient.Do(req1)
+	if err != nil {
+		distributionlogger.Errorf("Validator service check failed")
+		return "", false
+	}
+	defer resp.Body.Close()
+
+	//unmarshall the response body
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", false
+	}
+
+	var DecData ValidatorResp
+	err = json.Unmarshal(respBody, &DecData)
+	if err != nil {
+		return "", false
+	}
+
+	return DecData.RawTx, DecData.OK
+
+}
+
+//todo logic on the resend
+func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStart, epEnd uint64) (bool, error)  {
+	//todo check if send or not
+	//1. dial the node to check the connection
+	client, err := rpc.Dial(archNode)
+	if err != nil {
+		distributionlogger.Debugf("The connection to archnode is not OK! Change another one")
+		archNode = BestArchNode(archNodes)
+		client, err = rpc.Dial(archNode)
+	}
+
+	errSend := client.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+
+	time.Sleep(10 * time.Second)
+	//get the nonce after time waiting
+	nonceAt, _ := fetchNonce(archNode, sysAddr)
+	//nonceDB
+	var sr SendRecord
+	MDB(context.TODO()).Where("raw_tx = ?", rawTx).First(&sr)
+	nonceDB := sr.Nonce
+
+	//reading the receipt according to contract format
+	inLen, okLen, errCon := ContractEventListening(archNode, txHash)
+	distributionlogger.Debugf("The inLen is %d and okLen is %d", inLen, okLen)
+
+	//use the selection case to verify the success of the tx
+	if errSend != nil || errCon != nil || (int64(nonceAt) == nonceDB){
+		//todo check send success or not, resend tx with higher gas price
+		rehelper := helperResend(default40GWei * 2, archNode)
+		//begin to resend the tx with the same nonce but higher double gasPrice
+		ReRawTx, ReTxHash, err := rehelper.fetchRawTx(context.TODO(), epStart, epEnd, archNode)
+		if err != nil{
+			return false, err
+		}
+
+		resent, err := rehelper.ResendRawTx(ReRawTx)
+		if err != nil{
+			return false, err
+		}
+
+		//contractListening
+		ReinLen, ReokLen, err := ContractEventListening(archNode, ReTxHash)
+		if err != nil{
+			return false, err
+		}
+		distributionlogger.Debugf("The inLen is %d and okLen is %d", ReinLen, ReokLen)
+		//update the sendRecord table
+		resendRec := &SendRecord{
+			RawTx: ReRawTx,
+			TxHash: txHash,
+		}
+
+		err = UpdateSendRecord(context.Background(), resendRec)
+		if err != nil{
+			distributionlogger.Errorf("Update table error")
+		}
+		distributionlogger.Infof("Finish updating the table!")
+
+		return resent, nil
 	}
 
 
-	//todo some basic check before sending
-	/*
-	check before sending
-	*/
 
-	distributionlogger.Infof("Begin to send validator rewards info from epoch %d", epStart)
-	distributionlogger.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
 
-	return true, valmap, nil
+	return true, nil
 }
 
-//todo signing service gateway service integration
-//todo logic on the resend
-//SendDistribution to send distribution to gateway signing service
-//func SendDistribution() (nonce uint64)  {
-//	getTransactionReceipt
-//}
 
-//todo check if send or not
-//SignTxToContract, just for Testing
-//func SignTxToContract(data string) {
-//	archNode := "https://http-testnet.hecochain.com"
-//	client, err := ethclient.Dial(archNode)
-//	if err != nil {
-//		return
-//	}
-//	defer client.Close()
-//
-//
-//
-//}
+func (helper *sendHelper)ResendRawTx(rawTx string) (bool, error)  {
+	archNode := BestArchNode(archNodes)
+	client, _ := rpc.Dial(archNode)
+	err := client.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+	if err != nil{
+		return false, err
+	}
+
+	return true, nil
+}
 
 
-//todo check send success or not
 //ContractEventListening to trace the log of event NotifyRewardSummary after the contract notifyReward
 func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 	//use archnode instead for active tracing
@@ -127,19 +331,6 @@ func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 
 //PostSend
 func PostSend(ctx context.Context) error {
-	//mapValStatus := map[string]bool
-	//todo make some coordination on the input params
-	archnode, txhash := "", ""
-	inLen, okLen, err := ContractEventListening(archnode, txhash)
-	if err != nil{
-		return err
-	}
-
-	if inLen != okLen {
-		distributionlogger.Debugf("There have been data mismatch during execution in contract! Take some action to check!")
-
-	}
-
 	//normal process
 	vals := []*ValDist{}
 	for _, valD := range vals {
@@ -150,13 +341,7 @@ func PostSend(ctx context.Context) error {
 		}
 	}
 
-
-
-	//abnormal solution
-	//resend with fixed nonce, higher gasprice
-	//some solution here
-
-	distributionlogger.Infof("Begin to send validator rewards info from epoch %d", vals[0].ThisEpoch)
+	distributionlogger.Infof("Sending from %d to %d finished", vals[0].ThisEpoch, vals[0].LastEpoch)
 	return nil
 
 }

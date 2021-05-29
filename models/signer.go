@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,6 +52,9 @@ const (
 	AccessKey = "gateway"
 	SecretKey = "12345678"
 	AwsV4SigHeader = "signer.blockchain.amazonaws.com"
+	//todo ServiceUrl on line should be changed
+	GatewayServiceUrl = "https://172.18.23.38:21000/gateway/sign"
+	VotingContractProxyAddr = "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
 )
 
 // Key holds a set of Amazon Security Credentials.
@@ -126,8 +130,33 @@ func fetchNonce(archnode, addr string) (int, error) {
 	}
 	return int(nonce), nil
 }
+//fetchPendingNonce for sending raw tx
+func fetchPendingNonce(archnode, addr string) (int, error) {
+	client, err := ethclient.Dial(archnode)
+	if err != nil {
+		return 0, err
+	}
+	defer client.Close()
+	//addr in hex string
+	commonAddr := utils.HexToAddress(addr)
+	nonce, err := client.PendingNonceAt(context.TODO(), common.Address(commonAddr))
+	if err != nil {
+		return 0, err
+	}
+	return int(nonce), nil
+}
 
-func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encResp Response, err error)  {
+//ClientAWSV4
+//func RequestAwsV4(key *Key, targetUrl string) (*http.Request, error) {
+//	Url := targetUrl
+//
+//	req1, err := http.NewRequest("POST", Url, body)
+//	req1.Header.Set("content-type", "application/json")
+//	req1.Header.Set("Host", "signer.blockchain.amazonaws.com")
+//}
+
+
+func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int, gasPrice int64) (encResp Response, err error)  {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -136,7 +165,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 	myclient := &http.Client{Transport: tr, Timeout: 123 * time.Second}
 
 	//testing url
-	Url := "https://172.18.23.38:21000/gateway/sign"
+	Url := GatewayServiceUrl
 
 	//fetch the contract data
 	dataStr := getNotifyAmountData(valMapDist)
@@ -147,8 +176,8 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 		return
 	}
 
-	contractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
-
+	feePrice := strconv.FormatInt(gasPrice,10)
+	contractAddr := VotingContractProxyAddr
 	//assemble the data field for sending transaction
 	reqData := &ReqData{
 		To: contractAddr,
@@ -161,7 +190,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 		//GasLimit 1000000
 		FeeStep: "1000000",
 		//GasPrice 40GWei
-		FeePrice: "40000000000",
+		FeePrice: feePrice,
 		FeeAsset: "ht",
 		Amount: "0",
 	}
