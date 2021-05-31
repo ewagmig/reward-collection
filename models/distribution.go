@@ -24,7 +24,7 @@ import (
 
 var (
 	distributionlogger = logging.MustGetLogger("rewards.distribution.models")
-	EPDuration = int64(1)
+	EPDuration = int64(3)
 	//sysAddr should be provided by gateway service side
 	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
 	//default40GWei = int64(40000000000)
