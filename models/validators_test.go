@@ -2,6 +2,9 @@ package models
 
 import (
 	"context"
+	"encoding/hex"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
 	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/driver/mysql"
@@ -329,7 +332,7 @@ func TestSignGateway(t *testing.T) {
 	dataStr := getNotifyAmountData(valMapDist)
 	t.Log("The data string is", dataStr)
 	archNode := "https://http-testnet.hecochain.com"
-	sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
+	//sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
 	signGateway(archNode, sysAddr, valMapDist)
 }
 
@@ -373,4 +376,47 @@ func TestSortBigTable(t *testing.T) {
 	//t.Log(slice[l-5])
 	//t.Log(slice[:3])
 	t.Log(slice[l-1:])
+}
+
+func TestDecodeData(t *testing.T) {
+	rawTXstring := "f90122808509502f9000830f4240945caef96c490b5c357847214395ca384dc3d3b85e80b8bcf141d389000000000000000000000000000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a160000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000024942312ec0cf1ca032ca14c93ee152860a4c06a73e50f0a54411fc7b107e1079289527b3a0204184a003e9a022cc1613e0db0b1f9d7ccb0ec7ece6864a18d43af93a938239c4ef412f"
+	var tx types.Transaction
+	rawtx,err := hex.DecodeString(rawTXstring)
+	if err != nil{
+		t.Error(err)
+	}
+	rlp.DecodeBytes(rawtx, &tx)
+
+	t.Log(tx.To().Hex())
+
+}
+
+func TestValidator(t *testing.T) {
+	valMapDist := make(map[string]*big.Int)
+	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
+	archNode := "https://http-testnet.hecochain.com"
+
+	encResp, err := signGateway(archNode, sysAddr, valMapDist)
+	if err != nil {
+		t.Error(err)
+	}
+
+	encData := encResp.Data.EncryptData
+	t.Log("The enc signed tx is", encData)
+
+	targetUrl := "http://huobichain-dev-02.sinnet.huobiidc.com:5005/validate/cross/check"
+	accKey := Key{
+		AccessKey: AccessKey,
+		SecretKey: SecretKey,
+	}
+
+	validaReq := ValidatorReq{
+		EncryptData: encResp.Data.EncryptData,
+		Cipher: encResp.Data.Extra.Cipher,
+	}
+
+	rawTx, ok := ValidateEnc(validaReq, targetUrl, accKey)
+
+	t.Log("The raw tx is", rawTx)
+	t.Log("The Ok status is", ok)
 }

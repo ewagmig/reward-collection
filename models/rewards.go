@@ -2,29 +2,42 @@ package models
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/op/go-logging"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/gorm"
 	"math/big"
 	"sync"
 	"time"
 )
 
-//todo raw tx with nonce store table, new SQL application should submit
+const (
+	RecordCreated   =	"created"
+	RecordFailed	=	"failed"
+	RecordSuccess	= 	"success"
+
+)
+
 //SendRecord is a table to store the send raw transaction record
 //[Table]
 type SendRecord struct {
 	IDBase
 	RawTx		string			`json:"raw_tx"`
 	TxHash      string			`json:"tx_hash"`
+	Status      string          `json:"stat"`
 	Nonce		int64			`json:"nonce"`
-	GasPrice    int64			`json:"gas_price"`
+	//GasPrice    int64			`json:"gas_price"`
 	ThisEpoch	int64			`json:"this_epoch"`
 	LastEpoch	int64			`json:"last_epoch"`
 	AtBase
 }
 
+func (SendRecord)TableName() string {
+	return "send_records"
+}
 
 // Reward is a reward fetching per validator and store the data in table
 // [TABLE]
@@ -172,7 +185,7 @@ func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
-	if err := tx.Updates(record).Where("nonce = ?", record.Nonce).Error; err != nil {
+	if err := tx.Model(record).Update("status", RecordSuccess).Where("raw_tx = ?", record.RawTx).Error; err != nil {
 		blockslogger.Errorf("Update record error '%v'", err)
 		tx.Rollback()
 		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
@@ -180,6 +193,25 @@ func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
 	tx.Commit()
 	return nil
 }
+
+func UpdateSendRecordFailed(ctx context.Context, record *SendRecord) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	tx := MDB(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := tx.Model(record).Update("status", RecordFailed).Where("raw_tx = ?", record.RawTx).Error; err != nil {
+		blockslogger.Errorf("Update record error '%v'", err)
+		tx.Rollback()
+		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
+	}
+	tx.Commit()
+	return nil
+}
+
 
 //SaveValsForUT just for UT testing
 func (helper *blockHelper)SaveValsForUT(ctx context.Context, epochIndex uint64, tx *gorm.DB) error {
@@ -460,9 +492,24 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		}
 	}
 
+	//todo the check the unsuccessful send record before to finalized the record status
+	var srs []*SendRecord
+	MDB(ctx).Find(&srs).Where("status != ", RecordSuccess)
+	for _, sr := range srs{
+		client, _ := ethclient.Dial(helper.ArchNode)
+		receipt, _ := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(sr.TxHash)))
+		if receipt.Status == uint64(1){
+			UpdateSendRecord(ctx, sr)
+		} else {
+			UpdateSendRecordFailed(ctx, sr)
+		}
+	}
+
+
 	return laInfo.EpochIndex, nil
 }
 
+//syncEpoch background
 func SyncEpochBackground() {
 	var (
 		ctx        = context.Background()
@@ -472,4 +519,16 @@ func SyncEpochBackground() {
 		blockslogger.Errorf("Failed to sync background with epoch data parsing with error %v in epoch index %d", err, epIndex)
 	}
 	blockslogger.Debugf("Sync epoch success with latest epoch index %d", epIndex)
+}
+
+//process Send background
+func ProcessSendBackground() {
+	var (
+		ctx        = context.Background()
+	)
+	err := ProcessSend(ctx)
+	if err != nil{
+		blockslogger.Errorf("Failed to process send background with error %v", err)
+	}
+	blockslogger.Debugf("Process send distribution success!")
 }

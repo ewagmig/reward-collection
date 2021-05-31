@@ -19,7 +19,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -146,17 +145,7 @@ func fetchPendingNonce(archnode, addr string) (int, error) {
 	return int(nonce), nil
 }
 
-//ClientAWSV4
-//func RequestAwsV4(key *Key, targetUrl string) (*http.Request, error) {
-//	Url := targetUrl
-//
-//	req1, err := http.NewRequest("POST", Url, body)
-//	req1.Header.Set("content-type", "application/json")
-//	req1.Header.Set("Host", "signer.blockchain.amazonaws.com")
-//}
-
-
-func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int, gasPrice int64) (encResp Response, err error)  {
+func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encResp Response, err error)  {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -176,7 +165,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int, gasPr
 		return
 	}
 
-	feePrice := strconv.FormatInt(gasPrice,10)
+	//feePrice := strconv.FormatInt(gasPrice,10)
 	contractAddr := VotingContractProxyAddr
 	//assemble the data field for sending transaction
 	reqData := &ReqData{
@@ -190,7 +179,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int, gasPr
 		//GasLimit 1000000
 		FeeStep: "1000000",
 		//GasPrice 40GWei
-		FeePrice: feePrice,
+		FeePrice: "40000000000",
 		FeeAsset: "ht",
 		Amount: "0",
 	}

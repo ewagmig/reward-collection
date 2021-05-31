@@ -34,6 +34,7 @@ func (c *createTables20200706) Apply() error {
 	tables := []interface{}{
 		&models.Reward{},
 		&models.Epoch{},
+		&models.SendRecord{},
 	}
 
 	err := mdb.Get().AutoMigrate(tables...)

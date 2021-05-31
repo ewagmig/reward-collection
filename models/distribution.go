@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/op/go-logging"
@@ -57,8 +58,16 @@ type ValMapRewards struct {
 type sendHelper struct {
 	ArchNode string
 	EpochEnd int64
-	GasPrice int64
+	RawTx    string
+	TxHash   string
+	valMap   map[string]*big.Int
 	mu    sync.RWMutex
+}
+
+type DecParams struct {
+	Tasks      []Task		`json:"tasks"`
+	TxType     string		`json:"tx_type"`
+	RawTx      string		`json:"raw_tx"`
 }
 
 func newSendHelper() *sendHelper {
@@ -70,16 +79,58 @@ func newSendHelper() *sendHelper {
 
 	return &sendHelper{
 		ArchNode: archNode,
-		GasPrice: default40GWei,
+		//GasPrice: default40GWei,
 	}
 }
 
-func helperResend(gasPrice int64, archNode string) *sendHelper {
-	return &sendHelper{
-		GasPrice: gasPrice,
-		ArchNode: archNode,
+//todo kibana log
+
+//ProcessSend is the entrypoint of send module
+func ProcessSend(ctx context.Context) error{
+	helper := newSendHelper()
+	err := helper.DoSend(ctx)
+	if err != nil {
+		return err
 	}
+	return nil
 }
+
+func (helper *sendHelper) DoSend(ctx context.Context) error {
+	//fetch the latest epoch info
+	laInfo := ScramChainInfo(helper.ArchNode)
+	epEnd := laInfo.EpochIndex
+	epStart := epEnd - uint64(EPDuration) + 1
+
+	//1. begin pre send process
+	preSendBool, err := helper.PreSend(ctx, epStart, epEnd, helper.ArchNode)
+	if preSendBool && (err != nil) {
+		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
+			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode, epStart, epEnd)
+			//send check success
+			if sendBool && (err2 !=nil){
+				var vals []*ValDist
+				for v := range helper.valMap{
+					val := &ValDist{
+						ValAddr: v,
+						ThisEpoch: int64(epStart),
+						LastEpoch: int64(epEnd),
+					}
+					vals = append(vals, val)
+				}
+				sr := &SendRecord{
+					RawTx: helper.RawTx,
+				}
+				//update the database when successful
+				err3 := PostSend(ctx, vals, sr)
+				if err3 != nil {
+					return err3
+				}
+			}
+		}
+	}
+	return err
+}
+
 
 //fetchRawTx
 func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, archiveNode string) (string, string, error) {
@@ -93,16 +144,19 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 		return "", "", err
 	}
 
-	//todo some basic check before sending
 	//get the gateway encrypted data
-	encData, err := signGateway(archiveNode, sysAddr, valmap, helper.GasPrice)
+	encData, err := signGateway(archiveNode, sysAddr, valmap)
 	if err != nil {
 		distributionlogger.Errorf("Fetch enc data from gateway service error %v", err)
 		return "", "", err
 	}
 
-	//todo post the encData to validator service
-	rawTx, _ := ValidateEnc(encData, validatorUrl, validatorAccessKey)
+	validaReq := ValidatorReq{
+		EncryptData: encData.Data.EncryptData,
+		Cipher: encData.Data.Extra.Cipher,
+	}
+
+	rawTx, _ := ValidateEnc(validaReq, validatorUrl, validatorAccessKey)
 
 	if len(rawTx) == 0 {
 		return "", "", errors.BadRequestErrorf(errors.EthCallError, "The rawTx is empty")
@@ -140,6 +194,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		LastEpoch: int64(epEnd),
 		GasPrice: default40GWei,
 		TxHash: txHash,
+		Status: RecordCreated,
 	}
 
 	//save the send record
@@ -149,16 +204,28 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		return false, err
 	}
 
+	//update the field in sender helper
+	helper.RawTx = rawTx
+	helper.TxHash = txHash
+	helper.valMap = valmap
+
+
 	distributionlogger.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
 	return true, nil
 }
 
 type ValidatorResp struct {
-	RawTx     string       `json:"raw_tx"`
+	Data 	  DecParams		`json:"data"`
+	//RawTx     string       `json:"raw_tx"`
 	OK 		  bool		   `json:"ok"`
 }
 
-func ValidateEnc(encData Response, targetUrl string, accessKey Key) (rawTx string, ok bool) {
+type ValidatorReq struct {
+	EncryptData  string		`json:"encrypt_data"`
+	Cipher		 string     `json:"cipher"`
+}
+
+func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx string, ok bool) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -198,13 +265,12 @@ func ValidateEnc(encData Response, targetUrl string, accessKey Key) (rawTx strin
 		return "", false
 	}
 
-	return DecData.RawTx, DecData.OK
+	return DecData.Data.RawTx, DecData.OK
 
 }
 
 //todo logic on the resend
 func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStart, epEnd uint64) (bool, error)  {
-	//todo check if send or not
 	//1. dial the node to check the connection
 	client, err := rpc.Dial(archNode)
 	if err != nil {
@@ -215,7 +281,8 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStar
 
 	errSend := client.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
 
-	time.Sleep(10 * time.Second)
+	//wait 30s for on-chain
+	time.Sleep(30 * time.Second)
 	//get the nonce after time waiting
 	nonceAt, _ := fetchNonce(archNode, sysAddr)
 	//nonceDB
@@ -227,44 +294,25 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStar
 	inLen, okLen, errCon := ContractEventListening(archNode, txHash)
 	distributionlogger.Debugf("The inLen is %d and okLen is %d", inLen, okLen)
 
+	//1. 没有上链   SR-Status：pending
+	//下一次发送，check pending txhash, 如果发送成功，更新状态-->2 or 3
+
+
+	//2. 上链失败	  SR-Status：fail
+	//3. 上链成功	  SR-Status：success
+
 	//use the selection case to verify the success of the tx
-	if errSend != nil || errCon != nil || (int64(nonceAt) == nonceDB){
-		//todo check send success or not, resend tx with higher gas price
-		rehelper := helperResend(default40GWei * 2, archNode)
-		//begin to resend the tx with the same nonce but higher double gasPrice
-		ReRawTx, ReTxHash, err := rehelper.fetchRawTx(context.TODO(), epStart, epEnd, archNode)
-		if err != nil{
-			return false, err
+	if errSend == core.ErrAlreadyKnown || errCon != nil || (int64(nonceAt) == nonceDB){
+		//todo check send success or not, just rebroadcast the same tx
+		//batch broadcasting the same tx
+		targetNodes := []string{}
+		targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
+		for _, v := range targetNodes{
+			rpcClient, _ := rpc.Dial(v)
+			_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
 		}
-
-		resent, err := rehelper.ResendRawTx(ReRawTx)
-		if err != nil{
-			return false, err
-		}
-
-		//contractListening
-		ReinLen, ReokLen, err := ContractEventListening(archNode, ReTxHash)
-		if err != nil{
-			return false, err
-		}
-		distributionlogger.Debugf("The inLen is %d and okLen is %d", ReinLen, ReokLen)
-		//update the sendRecord table
-		resendRec := &SendRecord{
-			RawTx: ReRawTx,
-			TxHash: txHash,
-		}
-
-		err = UpdateSendRecord(context.Background(), resendRec)
-		if err != nil{
-			distributionlogger.Errorf("Update table error")
-		}
-		distributionlogger.Infof("Finish updating the table!")
-
-		return resent, nil
+		return false, nil
 	}
-
-
-
 
 	return true, nil
 }
@@ -330,15 +378,22 @@ func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 
 
 //PostSend
-func PostSend(ctx context.Context) error {
+func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 	//normal process
-	vals := []*ValDist{}
+	//vals := []*ValDist{}
 	for _, valD := range vals {
 		affectedRows, err := updateDisInDB(ctx, valD)
 		if affectedRows == int64(0) || err != nil {
 			distributionlogger.Errorf("The updating distributed flag error with val addr %s", valD.ValAddr)
 			continue
 		}
+	}
+
+	//when the Send bool is true, update the status to success
+	//var sr *SendRecord
+	err := UpdateSendRecord(ctx, sr)
+	if err != nil {
+		distributionlogger.Errorf("Updating the send record table failed")
 	}
 
 	distributionlogger.Infof("Sending from %d to %d finished", vals[0].ThisEpoch, vals[0].LastEpoch)
