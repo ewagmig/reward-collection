@@ -30,10 +30,10 @@ var (
 	//default40GWei = int64(40000000000)
 
 	//todo integration with validator
-	validatorUrl = "abdc/cross/check"
+	validatorUrl = "http://huobichain-dev-02.sinnet.huobiidc.com:5005/validate/cross/check"
 	validatorAccessKey = Key{
-		AccessKey: "abc",
-		SecretKey: "xxxx",
+		AccessKey: AccessKey,
+		SecretKey: SecretKey,
 	}
 	//todo archNode candidates connection before online
 	archNodes = []string{
