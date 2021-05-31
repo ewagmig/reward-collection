@@ -34,8 +34,10 @@ func start(mode string) error {
 
 	// make the cron job
 	c := decron.New()
-	//refresh every minute
+	//refresh every 10 minute
 	c.AddFunc("@every 10m", models.SyncEpochBackground)
+
+	c.AddFunc("@every 10m", models.ProcessSendBackground)
 	c.Start()
 
 	// Startup server to accept requests...

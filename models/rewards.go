@@ -185,7 +185,7 @@ func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
-	if err := tx.Model(record).Update("status", RecordSuccess).Where("raw_tx = ?", record.RawTx).Error; err != nil {
+	if err := tx.Model(record).Update("stat", RecordSuccess).Where("raw_tx = ?", record.RawTx).Error; err != nil {
 		blockslogger.Errorf("Update record error '%v'", err)
 		tx.Rollback()
 		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
@@ -203,7 +203,7 @@ func UpdateSendRecordFailed(ctx context.Context, record *SendRecord) error {
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
-	if err := tx.Model(record).Update("status", RecordFailed).Where("raw_tx = ?", record.RawTx).Error; err != nil {
+	if err := tx.Model(record).Update("stat", RecordFailed).Where("raw_tx = ?", record.RawTx).Error; err != nil {
 		blockslogger.Errorf("Update record error '%v'", err)
 		tx.Rollback()
 		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
@@ -494,10 +494,16 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 
 	//todo the check the unsuccessful send record before to finalized the record status
 	var srs []*SendRecord
-	MDB(ctx).Find(&srs).Where("status != ", RecordSuccess)
+	MDB(ctx).Find(&srs).Where("stat = ?", RecordCreated)
 	for _, sr := range srs{
-		client, _ := ethclient.Dial(helper.ArchNode)
-		receipt, _ := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(sr.TxHash)))
+		client, err1 := ethclient.Dial(helper.ArchNode)
+		if err1 != nil {
+			return 0, err1
+		}
+		receipt, err2 := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(sr.TxHash)))
+		if err2 != nil {
+			return 0, err2
+		}
 		if receipt.Status == uint64(1){
 			UpdateSendRecord(ctx, sr)
 		} else {

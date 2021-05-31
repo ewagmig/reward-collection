@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/op/go-logging"
@@ -25,10 +24,10 @@ import (
 
 var (
 	distributionlogger = logging.MustGetLogger("rewards.distribution.models")
-	EPDuration = int64(36)
+	EPDuration = int64(1)
 	//sysAddr should be provided by gateway service side
 	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
-	default40GWei = int64(40000000000)
+	//default40GWei = int64(40000000000)
 
 	//todo integration with validator
 	validatorUrl = "abdc/cross/check"
@@ -105,7 +104,7 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 	preSendBool, err := helper.PreSend(ctx, epStart, epEnd, helper.ArchNode)
 	if preSendBool && (err != nil) {
 		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
-			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode, epStart, epEnd)
+			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode)
 			//send check success
 			if sendBool && (err2 !=nil){
 				var vals []*ValDist
@@ -192,7 +191,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		Nonce: int64(nonce),
 		ThisEpoch: int64(epStart),
 		LastEpoch: int64(epEnd),
-		GasPrice: default40GWei,
+		//GasPrice: default40GWei,
 		TxHash: txHash,
 		Status: RecordCreated,
 	}
@@ -269,17 +268,14 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 
 }
 
-//todo logic on the resend
-func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStart, epEnd uint64) (bool, error)  {
+func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool, error)  {
 	//1. dial the node to check the connection
-	client, err := rpc.Dial(archNode)
-	if err != nil {
-		distributionlogger.Debugf("The connection to archnode is not OK! Change another one")
-		archNode = BestArchNode(archNodes)
-		client, err = rpc.Dial(archNode)
+	targetNodes := []string{}
+	targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
+	for _, v := range targetNodes{
+		rpcClient, _ := rpc.Dial(v)
+		_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
 	}
-
-	errSend := client.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
 
 	//wait 30s for on-chain
 	time.Sleep(30 * time.Second)
@@ -290,10 +286,16 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStar
 	MDB(context.TODO()).Where("raw_tx = ?", rawTx).First(&sr)
 	nonceDB := sr.Nonce
 
-	//reading the receipt according to contract format
-	inLen, okLen, errCon := ContractEventListening(archNode, txHash)
-	distributionlogger.Debugf("The inLen is %d and okLen is %d", inLen, okLen)
-
+	////catch the receipt status
+	client, err := ethclient.Dial(archNode)
+	if err != nil {
+		return false, err
+	}
+	defer client.Close()
+	receipt, err := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(txHash)))
+	if err != nil{
+		return false, err
+	}
 	//1. 没有上链   SR-Status：pending
 	//下一次发送，check pending txhash, 如果发送成功，更新状态-->2 or 3
 
@@ -302,15 +304,7 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string, epStar
 	//3. 上链成功	  SR-Status：success
 
 	//use the selection case to verify the success of the tx
-	if errSend == core.ErrAlreadyKnown || errCon != nil || (int64(nonceAt) == nonceDB){
-		//todo check send success or not, just rebroadcast the same tx
-		//batch broadcasting the same tx
-		targetNodes := []string{}
-		targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
-		for _, v := range targetNodes{
-			rpcClient, _ := rpc.Dial(v)
-			_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
-		}
+	if receipt.Status == uint64(0) || (int64(nonceAt) == nonceDB){
 		return false, nil
 	}
 
