@@ -27,7 +27,7 @@ type SendRecord struct {
 	IDBase
 	RawTx		string			`json:"raw_tx"`
 	TxHash      string			`json:"tx_hash"`
-	Status      string          `json:"stat"`
+	Stat      	string          `json:"stat"`
 	Nonce		int64			`json:"nonce"`
 	//GasPrice    int64			`json:"gas_price"`
 	ThisEpoch	int64			`json:"this_epoch"`

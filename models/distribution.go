@@ -193,7 +193,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		LastEpoch: int64(epEnd),
 		//GasPrice: default40GWei,
 		TxHash: txHash,
-		Status: RecordCreated,
+		Stat: RecordCreated,
 	}
 
 	//save the send record
