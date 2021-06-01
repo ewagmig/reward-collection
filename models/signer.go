@@ -53,7 +53,7 @@ const (
 	AwsV4SigHeader = "signer.blockchain.amazonaws.com"
 	//todo ServiceUrl on line should be changed
 	GatewayServiceUrl = "https://172.18.23.38:21000/gateway/sign"
-	VotingContractProxyAddr = "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
+	VotingContractProxyAddr = "0x7ce9a4f22fb3b3e2d91cc895bb082d7bd6f08525"
 )
 
 // Key holds a set of Amazon Security Credentials.

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/rpc"
 	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
 	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/driver/mysql"
@@ -421,4 +422,8 @@ func TestValidator(t *testing.T) {
 
 	t.Log("The raw tx is", rawTx)
 	t.Log("The Ok status is", ok)
+
+	rpcClient, _ := rpc.Dial(archNode)
+	_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+
 }
