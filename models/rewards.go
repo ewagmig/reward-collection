@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/utils"
@@ -355,7 +355,7 @@ func saveEpochForTest(ctx context.Context, info *BlockchainInfo, db *gorm.DB) er
 }
 
 
-func processDBErr(err error, log *logging.Logger, fmt string, args ...interface{}) error {
+func processDBErr(err error, log *logrus.Logger, fmt string, args ...interface{}) error {
 	log.Errorf(fmt, args...)
 	return errors.DatabaseToAPIError(err)
 }
@@ -492,6 +492,7 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		}
 	}
 
+	//todo to be abandond here !
 	sr := &SendRecord{}
 	MDB(ctx).First(&sr).Where("stat = ?", RecordCreated)
 	client, err1 := ethclient.Dial(helper.ArchNode)

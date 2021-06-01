@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/awnumar/memguard"
 	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	cmdsvr "github.com/starslabhq/rewards-collection/cmd/server"
@@ -23,8 +24,8 @@ var (
 	mode        string
 	versionFlag bool
 	logOutput   = os.Stderr
-	logger      = logging.MustGetLogger("common.main")
-
+	//logger      = logging.MustGetLogger("common.main")
+	logger *logrus.Logger
 	mainCmd = &cobra.Command{
 		Use:   "commonComponent",
 		Short: "commonComponent is a utility for managing fabric blockchain configurations",

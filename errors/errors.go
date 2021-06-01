@@ -2,15 +2,15 @@ package errors
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/op/go-logging"
 	"github.com/spf13/cast"
 )
 
-var logger = logging.MustGetLogger("rewards.collection.errors")
-
+//var logger = logging.MustGetLogger("rewards.collection.errors")
+var logger *logrus.Logger
 // APIError defines the baas server API error
 type APIError interface {
 	error

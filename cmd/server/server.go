@@ -1,7 +1,7 @@
 package server
 
 import (
-	logging "github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	acmd "github.com/starslabhq/rewards-collection/cmd"
 )
@@ -12,7 +12,8 @@ const (
 )
 
 var (
-	logger = logging.MustGetLogger("common.cmd.server")
+	//logger = logging.MustGetLogger("common.cmd.server")
+	logger *logrus.Logger
 )
 
 func Cmd() *cobra.Command {

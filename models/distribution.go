@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/utils"
@@ -23,7 +23,8 @@ import (
 )
 
 var (
-	distributionlogger = logging.MustGetLogger("rewards.distribution.models")
+	//distributionlogger = logging.MustGetLogger("rewards.distribution.models")
+	distributionlogger *logrus.Logger
 	EPDuration = int64(3)
 	//sysAddr should be provided by gateway service side
 	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
@@ -644,7 +645,7 @@ func updateDisInDBUT(ctx context.Context, valD *ValDist, tx *gorm.DB) (int64, er
 		eplist = append(eplist, i)
 	}
 
-	db := tx.Model(&rw).Where("validator_addr = ? and epoch_index IN ?", valD.ValAddr, eplist).Updates(map[string]interface{}{"distributed": true})
+	db := tx.Model(&rw).Where("validator_addr = ? and epoch_index IN ?", valD.ValAddr, eplist).Updates(map[string]interface{}{"distributed": 1})
 
 	if db.RowsAffected != deltaEP || db.Error != nil {
 		distributionlogger.Errorf("Update distribution in db error")

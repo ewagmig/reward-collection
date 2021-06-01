@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/models"
 	"github.com/starslabhq/rewards-collection/server"
@@ -11,7 +11,8 @@ import (
 	"net/http"
 )
 
-var rewardslogger = logging.MustGetLogger("rewards.collection.controller")
+//var rewardslogger = logging.MustGetLogger("rewards.collection.controller")
+var rewardslogger *logrus.Logger
 
 func init() {
 	err := server.RegisterController(&rewardsCol{})

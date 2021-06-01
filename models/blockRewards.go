@@ -6,19 +6,31 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/log"
 	"math/big"
 	"time"
 )
 
-var blockslogger = logging.MustGetLogger("blocks.scraper.models")
+//var blockslogger = logging.MustGetLogger("blocks.scraper.models")
+var blockslogger *logrus.Logger
 
 /*
 eth.getBlockByNumber:transactions, iterate transactions[],
 to eth.getTransaction:gasPrice. to eth.getTransactionReceipt:gasUsed,
 multiple(gasPrice, gasUsed), sum all
 */
+
+func init() {
+	//log entrypoint here
+	topic := viper.GetString("log.topic")
+	brokers := viper.GetStringSlice("log.kafka.servers")
+	level := viper.GetInt("log.level")
+	log.AddKafkaHook(topic, brokers, level)
+
+}
 
 var (
 	Client *ethclient.Client

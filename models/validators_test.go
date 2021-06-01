@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	connStr = "root:12345_@tcp(localhost:3306)/heco_test?charset=utf8&parseTime=True&loc=Local"
+	connStr = "root:12345678@tcp(huobichain-dev-02.sinnet.huobiidc.com:3306)/heco_test?charset=utf8&parseTime=True&loc=Local"
 )
 
 func InitDB(source string) (*gorm.DB, error) {
@@ -32,30 +32,30 @@ func InitDB(source string) (*gorm.DB, error) {
 	return gdb, err
 }
 
-func TestSaveEpochData(t *testing.T) {
-	archNode := "https://http-testnet.hecochain.com"
-	blockInfo := ScramChainInfo(archNode)
-	t.Log(blockInfo.EpochIndex)
-	fees := GetBlockEpochRewards(archNode,blockInfo.EpochIndex)
-	blockInfo.TotalFees = fees
-
-	db, err := InitDB(connStr)
-	if err != nil {
-		t.Error(err)
-	}
-
-	epochs := &Epoch{
-		EpochIndex: int64(blockInfo.EpochIndex),
-		ThisBlockNumber: blockInfo.ThisBlockNum.Int64(),
-		LastBlockNumber: blockInfo.LastBlockNum.Int64(),
-		TotalFees: blockInfo.TotalFees.String(),
-	}
-
-	err = db.Create(epochs).Error
-	if err != nil {
-		t.Error(err)
-	}
-}
+//func TestSaveEpochData(t *testing.T) {
+//	archNode := "https://http-testnet.hecochain.com"
+//	blockInfo := ScramChainInfo(archNode)
+//	t.Log(blockInfo.EpochIndex)
+//	fees := GetBlockEpochRewards(archNode,blockInfo.EpochIndex)
+//	blockInfo.TotalFees = fees
+//
+//	db, err := InitDB(connStr)
+//	if err != nil {
+//		t.Error(err)
+//	}
+//
+//	epochs := &Epoch{
+//		EpochIndex: int64(blockInfo.EpochIndex),
+//		ThisBlockNumber: blockInfo.ThisBlockNum.Int64(),
+//		LastBlockNumber: blockInfo.LastBlockNum.Int64(),
+//		TotalFees: blockInfo.TotalFees.String(),
+//	}
+//
+//	err = db.Create(epochs).Error
+//	if err != nil {
+//		t.Error(err)
+//	}
+//}
 
 //func TestEthcallVal(t *testing.T) {
 //	archiveNode := "https://http-testnet.hecochain.com"
@@ -425,5 +425,21 @@ func TestValidator(t *testing.T) {
 
 	rpcClient, _ := rpc.Dial(archNode)
 	_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+
+}
+
+func TestGetRewardsInEPs(t *testing.T) {
+	rs := []string{"3455121063333332", "3455121063333332", "4442298509999998", "4442298509999998", "4442298509999998", "4442298509999998", "5429475956666664", "8391008296666662", "23198669996666652", "4442298509999998", "2467943616666666", "2726113765714285", "2726113765714285", "5149326001904761", "14236371887619046", "2120310706666666", "2120310706666666", "2726113765714285", "2726113765714285", "2726113765714285", "3331916824761904", "1514507647619047", "2025642211666666", "2604397129285713", "2604397129285713", "3183152046904760", "2025642211666666", "2604397129285713", "2604397129285713", "2604397129285713", "4919416799761901", "13600740564047606", "1446887294047619"}
+
+	var rbig []*big.Int
+	for _, v := range rs{
+		rwbig, ok := new(big.Int).SetString(v, 10)
+		if ok{
+			rbig = append(rbig, rwbig)
+		}
+	}
+
+	total := sum(rbig)
+	t.Log(total)
 
 }

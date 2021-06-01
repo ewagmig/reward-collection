@@ -3,14 +3,14 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/gin-gonic/gin"
-	logging "github.com/op/go-logging"
 	"github.com/spf13/viper"
+	"github.com/starslabhq/rewards-collection/utils"
 )
 
 const (
@@ -19,8 +19,8 @@ const (
 	defaultVersion = "v1"
 )
 
-var logger = logging.MustGetLogger("common.server")
-
+//var logger = logging.MustGetLogger("common.server")
+var logger *logrus.Logger
 // Mode represents DEV or PROD
 type Mode int
 
@@ -288,8 +288,8 @@ func (s *Server) Startup(addr string) error {
 
 	s.server = sv
 
-	logger.Infof("http Server s.server ReadTimeout:", s.server.ReadTimeout)
-	logger.Infof("http Server s.server WriteTimeout:", s.server.WriteTimeout)
+	logger.Infof("http Server s.server ReadTimeout:%v", s.server.ReadTimeout)
+	logger.Infof("http Server s.server WriteTimeout:%v", s.server.WriteTimeout)
 	return s.server.ListenAndServe()
 }
 

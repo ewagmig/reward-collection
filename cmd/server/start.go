@@ -31,7 +31,6 @@ func start(mode string) error {
 	logger.Infof("Start heco common component server in %s mode, with %s", mode, version.Version())
 
 	s := server.New(getServerOptions(mode)...)
-
 	// make the cron job
 	c := decron.New()
 	//refresh every 10 minute
