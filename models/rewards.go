@@ -492,25 +492,23 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		}
 	}
 
-	//todo the check the unsuccessful send record before to finalized the record status
-	var srs []*SendRecord
-	MDB(ctx).Find(&srs).Where("stat = ?", RecordCreated)
-	for _, sr := range srs{
-		client, err1 := ethclient.Dial(helper.ArchNode)
-		if err1 != nil {
-			return 0, err1
-		}
-		receipt, err2 := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(sr.TxHash)))
-		if err2 != nil {
-			return 0, err2
-		}
+	sr := &SendRecord{}
+	MDB(ctx).First(&sr).Where("stat = ?", RecordCreated)
+	client, err1 := ethclient.Dial(helper.ArchNode)
+	if err1 != nil {
+		return 0, err1
+	}
+	receipt, err2 := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(sr.TxHash)))
+	if err2 != nil {
+		return 0, err2
+	}
+	if receipt != nil{
 		if receipt.Status == uint64(1){
 			UpdateSendRecord(ctx, sr)
 		} else {
 			UpdateSendRecordFailed(ctx, sr)
 		}
 	}
-
 
 	return laInfo.EpochIndex, nil
 }
