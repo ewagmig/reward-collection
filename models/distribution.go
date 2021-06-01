@@ -95,18 +95,23 @@ func ProcessSend(ctx context.Context) error{
 }
 
 func (helper *sendHelper) DoSend(ctx context.Context) error {
-	//fetch the latest epoch info
-	laInfo := ScramChainInfo(helper.ArchNode)
-	epEnd := laInfo.EpochIndex
+	//fetch the latest epoch info in db
+	ep := &Epoch{}
+	MDB(ctx).Order("epoch_index DESC").First(&ep)
+
+	//laInfo := ScramChainInfo(helper.ArchNode)
+	epEnd := uint64(ep.EpochIndex)
 	epStart := epEnd - uint64(EPDuration) + 1
 
 	//1. begin pre send process
 	preSendBool, err := helper.PreSend(ctx, epStart, epEnd, helper.ArchNode)
-	if preSendBool && (err != nil) {
+	if preSendBool && (err == nil) {
 		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
+			distributionlogger.Infof("Begin to send raw tx with txHash %s", helper.TxHash)
 			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode)
 			//send check success
-			if sendBool && (err2 !=nil){
+			if sendBool && (err2 == nil){
+				distributionlogger.Infof("Finish send raw tx with txHash %s", helper.TxHash)
 				var vals []*ValDist
 				for v := range helper.valMap{
 					val := &ValDist{
@@ -127,7 +132,7 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 			}
 		}
 	}
-	return err
+	return nil
 }
 
 
