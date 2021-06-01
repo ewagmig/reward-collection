@@ -157,7 +157,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 	Url := GatewayServiceUrl
 
 	//fetch the contract data
-	dataStr := getNotifyAmountData(valMapDist)
+	dataStr, amstr := getNotifyAmountData(valMapDist)
 
 	//fetch toaddr nonce
 	nonce, err := fetchNonce(archNode, sysAddr)
@@ -181,7 +181,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 		//GasPrice 40GWei
 		FeePrice: "40000000000",
 		FeeAsset: "ht",
-		Amount: "0",
+		Amount: amstr,
 	}
 	reqDataByte, err := json.Marshal(reqData)
 	if err != nil {

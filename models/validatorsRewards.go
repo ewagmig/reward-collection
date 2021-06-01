@@ -503,7 +503,7 @@ func jsonrpcEthCallNotifyAmount(archNode string, valMapDist map[string]*big.Int)
 }
 
 //NotifyAmount
-func getNotifyAmountData(valMapDist map[string]*big.Int) string {
+func getNotifyAmountData(valMapDist map[string]*big.Int) (da, amount string){
 	//to assemble the data string structure with fn prefix, addr with left padding
 	//validatorContractAddr := "0x5CaeF96c490b5c357847214395Ca384dC3d3b85e"
 	//fn notifyRewardAmount() signature in smart contract
@@ -514,17 +514,19 @@ func getNotifyAmountData(valMapDist map[string]*big.Int) string {
 	lengthHex = strings.TrimPrefix(lengthHex, "0x")
 	lengthPad := fmt.Sprintf("%064s", lengthHex)
 	//to assemble the original data
-	addrPrefix := "000000000000000000000000"
+	//addrPrefix := "000000000000000000000000"
 	var valaddrs string
 	for k := range valMapDist {
-		valkey := addrPrefix + k
+		valkey := k
 		valaddrs = valaddrs + valkey
 	}
 	//address[] calldata
 	addrCalldata := lengthPad + valaddrs
 
 	var valValues string
+	var vas []*big.Int
 	for _, v := range valMapDist {
+		vas = append(vas, v)
 		dist := hexutil.EncodeBig(v)
 		dist = strings.TrimPrefix(dist, "0x")
 		distpad := fmt.Sprintf("%064s", dist)
@@ -532,10 +534,21 @@ func getNotifyAmountData(valMapDist map[string]*big.Int) string {
 	}
 	distcalldata := lengthPad + valValues
 
-	dataOb := valaddrs + addrCalldata + distcalldata
+	offsetAddrs := fmt.Sprintf("%064s", "40")
+
+	offsetB := len(valMapDist) + 3
+	off := hexutil.EncodeUint64(uint64(offsetB * 32))
+	off = strings.TrimPrefix(off, "0x")
+
+	offsetValues := fmt.Sprintf("%064s", off)
+
+	dataOb := offsetAddrs + offsetValues + addrCalldata + distcalldata
 
 	dataStr := notifyRewardAmountPrefix + dataOb
-	return dataStr
+
+	am := sum(vas)
+	amstr := am.String()
+	return dataStr, amstr
 }
 
 
