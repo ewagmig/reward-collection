@@ -41,7 +41,7 @@ var (
 )
 
 func init() {
-	cobra.OnInitialize(initConf, initLogger)
+	initConf()
 	mainFlags := mainCmd.PersistentFlags()
 	mainFlags.BoolVarP(&versionFlag, "version", "v", false, "Display current version of Common Component")
 	mainFlags.StringVarP(&mode, "mode", "m", dev, "Mode, dev or prod")
@@ -53,9 +53,13 @@ func init() {
 	topic := viper.GetString("log.topic")
 	brokers := viper.GetStringSlice("log.kafka.servers")
 	level := viper.GetInt("log.level")
-	kafkalog.AddKafkaHook(topic, brokers, level)
+
+	err := kafkalog.AddKafkaHook(topic, brokers, level)
+	if err != nil {
+		fmt.Println(err)
+	}
 	kafkalog.AddConsoleOut(3)
-	kafkalog.AddField("hello", "world")
+	kafkalog.AddField("app", "reward-collection")
 }
 
 func main() {
@@ -102,11 +106,13 @@ func initConf() {
 
 	viper.SetConfigName(mode)
 	//envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
+	//fmt.Println("enval", envVal)
 	//if envVal != "" {
 	//	viper.AddConfigPath(envVal)
 	//} else {
 	//	viper.AddConfigPath("conf/")
 	//}
+
 
 	viper.AddConfigPath("conf/")
 	err := viper.ReadInConfig()

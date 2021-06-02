@@ -3,7 +3,7 @@ module github.com/starslabhq/rewards-collection
 go 1.14
 
 require (
-	github.com/Shopify/sarama v1.29.0
+	github.com/Shopify/sarama v1.26.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/awnumar/memguard v0.15.1-0.20180428154555-3cae8a4b6987
 	github.com/ethereum/go-ethereum v1.9.23
