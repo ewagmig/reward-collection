@@ -37,7 +37,7 @@ func start(mode string) error {
 	//refresh every 10 minute
 	c.AddFunc("@every 3m", models.SyncEpochBackground)
 
-	//c.AddFunc("@every 3m", models.ProcessSendBackground)
+	c.AddFunc("@every 4m", models.ProcessSendBackground)
 	c.Start()
 
 	// Startup server to accept requests...

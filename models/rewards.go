@@ -365,9 +365,10 @@ func (helper *blockHelper)SaveEpochData(ctx context.Context, epochIndex uint64) 
 		return errors.BadRequestError(errors.EthCallError, "Get epoch info error")
 	}
 	//begin to save data into mysql backend
-	err = saveEpoch(ctx, info)
-	if err != nil {
-		return err
+	err1 := saveEpoch(ctx, info)
+	if err1 != nil {
+		logrus.Errorf("save Epoch data error %v", err1)
+		return err1
 	}
 	return nil
 }
@@ -479,16 +480,16 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		epgap := laInfo.EpochIndex - epstore
 		logrus.Infof("The epoch gap is %d:", epgap)
 		for i := epgap; i > 0; i -- {
-			err = helper.SaveEpochData(ctx, laInfo.EpochIndex - i + 1)
-			if err != nil {
-				logrus.Errorf("The error for save Epoch data is %v", err)
-				return uint64(0), err
+			err1 := helper.SaveEpochData(ctx, laInfo.EpochIndex - i + 1)
+			if err1 != nil {
+				logrus.Errorf("The error for save Epoch data is %v", err1)
+				return uint64(0), err1
 			}
 			//try to save rewards info into database
-			err = helper.SaveVals(ctx, laInfo.EpochIndex - i + 1)
-			if err != nil {
-				logrus.Errorf("The error for save vals data is %v", err)
-				return uint64(0), err
+			err2 := helper.SaveVals(ctx, laInfo.EpochIndex - i + 1)
+			if err2 != nil {
+				logrus.Errorf("The error for save vals data is %v", err2)
+				return uint64(0), err2
 			}
 		}
 	}
