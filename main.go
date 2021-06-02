@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	cmdsvr "github.com/starslabhq/rewards-collection/cmd/server"
+	kafkalog "github.com/starslabhq/rewards-collection/log"
 	"github.com/starslabhq/rewards-collection/version"
 	"log"
 	"os"
@@ -48,6 +49,12 @@ func init() {
 	viper.SetDefault("username", "Admin")
 	viper.SetDefault("password", "Admin")
 	viper.SetDefault("gm", false)
+	//log entrypoint here
+	topic := viper.GetString("log.topic")
+	brokers := viper.GetStringSlice("log.kafka.servers")
+	level := viper.GetInt("log.level")
+	kafkalog.AddKafkaHook(topic, brokers, level)
+
 }
 
 func main() {
@@ -93,14 +100,14 @@ func initConf() {
 	viper.SetEnvKeyReplacer(replacer)
 
 	viper.SetConfigName(mode)
-	envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
-	if envVal != "" {
-		viper.AddConfigPath(envVal)
-	} else {
-		viper.AddConfigPath("conf/")
-	}
+	//envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
+	//if envVal != "" {
+	//	viper.AddConfigPath(envVal)
+	//} else {
+	//	viper.AddConfigPath("conf/")
+	//}
 
-	//viper.AddConfigPath("conf/")
+	viper.AddConfigPath("conf/")
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Errorf("Fatal error config file: %s", err)
