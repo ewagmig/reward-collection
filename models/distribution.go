@@ -109,7 +109,7 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 	if preSendBool && (err == nil) {
 		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
 			logrus.Infof("Begin to send raw tx with txHash %s", helper.TxHash)
-			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode)
+			sendBool, err2 := helper.SendDistribution(ctx, helper.RawTx, helper.TxHash, helper.ArchNode)
 			if err2 != nil {
 				logrus.Errorf("Send Distribution error %v", err2)
 			}
@@ -155,7 +155,7 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 	}
 
 	//get the gateway encrypted data
-	encData, err := signGateway(archiveNode, sysAddr, valmap)
+	encData, err := signGateway(ctx, archiveNode, sysAddr, valmap)
 	if err != nil {
 		logrus.Errorf("Fetch enc data from gateway service error %v", err)
 		return "", "", err
@@ -193,7 +193,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 	}
 
 	//fetch the pending nonce for sending transaction
-	nonce, err := fetchPendingNonce(archiveNode, sysAddr)
+	nonce, err := fetchPendingNonce(ctx, archiveNode, sysAddr)
 	if err != nil {
 		return false, err
 	}
@@ -210,7 +210,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 
 	//save the send record
 	logrus.Infof("Beigin to save the send record")
-	err = SaveSendRecord(context.TODO(), sr)
+	err = SaveSendRecord(ctx, sr)
 	if err != nil {
 		return false, err
 	}
@@ -280,7 +280,7 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 
 }
 
-func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool, error)  {
+func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, archNode string) (bool, error)  {
 	//1. dial the node to check the connection
 	targetNodes := []string{}
 	targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
@@ -295,10 +295,13 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool,
 	//wait 30s for on-chain
 	time.Sleep(30 * time.Second)
 	//get the nonce after time waiting
-	nonceAt, _ := fetchNonce(archNode, sysAddr)
+	nonceAt, err := fetchNonce(ctx, archNode, sysAddr)
+	if err != nil {
+		logrus.Errorf("Fecth nonceAt error %v", err)
+	}
 	//nonceDB
 	var sr SendRecord
-	MDB(context.TODO()).Where("raw_tx = ?", rawTx).First(&sr)
+	MDB(ctx).Where("raw_tx = ?", rawTx).First(&sr)
 	nonceDB := sr.Nonce
 
 	logrus.Infof("The nonceAt is %d and nonce in DB is %d", nonceAt, nonceDB)
@@ -309,7 +312,7 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool,
 		return false, err
 	}
 	defer client.Close()
-	receipt, err := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(txHash)))
+	receipt, err := client.TransactionReceipt(ctx, common.Hash(utils.HexToHash(txHash)))
 	if err != nil{
 		logrus.Errorf("There is error when getting transaction receipt %v", err)
 		return false, err

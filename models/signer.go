@@ -115,7 +115,7 @@ type RespEx struct {
 	TxHash      string		`json:"txhash"`
 }
 
-func fetchNonce(archnode, addr string) (int, error) {
+func fetchNonce(ctx context.Context,archnode, addr string) (int, error) {
 	client, err := ethclient.Dial(archnode)
 	if err != nil {
 		return 0, err
@@ -123,14 +123,14 @@ func fetchNonce(archnode, addr string) (int, error) {
 	defer client.Close()
 	//addr in hex string
 	commonAddr := utils.HexToAddress(addr)
-	nonce, err := client.NonceAt(context.TODO(), common.Address(commonAddr),nil)
+	nonce, err := client.NonceAt(ctx, common.Address(commonAddr),nil)
 	if err != nil {
 		return 0, err
 	}
 	return int(nonce), nil
 }
 //fetchPendingNonce for sending raw tx
-func fetchPendingNonce(archnode, addr string) (int, error) {
+func fetchPendingNonce(ctx context.Context,archnode, addr string) (int, error) {
 	client, err := ethclient.Dial(archnode)
 	if err != nil {
 		return 0, err
@@ -138,14 +138,14 @@ func fetchPendingNonce(archnode, addr string) (int, error) {
 	defer client.Close()
 	//addr in hex string
 	commonAddr := utils.HexToAddress(addr)
-	nonce, err := client.PendingNonceAt(context.TODO(), common.Address(commonAddr))
+	nonce, err := client.PendingNonceAt(ctx, common.Address(commonAddr))
 	if err != nil {
 		return 0, err
 	}
 	return int(nonce), nil
 }
 
-func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encResp Response, err error)  {
+func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[string]*big.Int) (encResp Response, err error)  {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -160,7 +160,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 	dataStr, amstr := getNotifyAmountData(valMapDist)
 
 	//fetch toaddr nonce
-	nonce, err := fetchNonce(archNode, sysAddr)
+	nonce, err := fetchNonce(ctx, archNode, sysAddr)
 	if err != nil {
 		return
 	}

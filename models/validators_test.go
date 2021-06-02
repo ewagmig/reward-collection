@@ -337,7 +337,7 @@ func TestSignGateway(t *testing.T) {
 
 	archNode := "https://http-testnet.hecochain.com"
 	//sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
-	signGateway(archNode, sysAddr, valMapDist)
+	signGateway(context.Background(),archNode, sysAddr, valMapDist)
 }
 
 func TestCalcUT(t *testing.T) {
@@ -400,7 +400,7 @@ func TestValidator(t *testing.T) {
 	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
 	archNode := "https://http-testnet.hecochain.com"
 
-	encResp, err := signGateway(archNode, sysAddr, valMapDist)
+	encResp, err := signGateway(context.Background(), archNode, sysAddr, valMapDist)
 	if err != nil {
 		t.Error(err)
 	}
