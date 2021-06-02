@@ -145,7 +145,7 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	if err := tx.Create(RWs).Error; err != nil {
 		logrus.Errorf("Create rewards error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, "", "Failed to create rewards caused by error %v", err)
+		return processDBErr(err, "failed to process database %v", err)
 	}
 	tx.Commit()
 
