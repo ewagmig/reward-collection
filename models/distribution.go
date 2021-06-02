@@ -176,6 +176,7 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 
 //PreSend to pump distribution from database, then take some check before sending
 func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bool, error){
+	logrus.Infof("Enter preSend phase")
 	valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
 	if err != nil {
 		logrus.Errorf("Fetch validator distribution error %v", err)
@@ -501,7 +502,8 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 		eplist = append(eplist, i)
 	}
 	deltaEP := epEnd - epStart + 1
-	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
+	logrus.Debugf("The deltaEP is %d and the eplist is %v", deltaEP, eplist)
+	//rw := db.Where("validator_addr = ? and epoch_index IN ?", valAddr, eplist).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
 	rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
 		//batch processing the results
 		for _, rw := range rws{
@@ -624,8 +626,9 @@ func fetchValToDisWithinEPUT(ctx context.Context, valAddr string, db *gorm.DB, e
 		eplist = append(eplist, i)
 	}
 	deltaEP := epEnd - epStart + 1
+	logrus.Debugf("The deltaEP is %d and the eplist is %v", deltaEP, eplist)
 	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
-	rw := db.Where("validator_addr = ? and epoch_index IN ?", valAddr, eplist).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+	rw := db.Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
 		//batch processing the results
 		for _, rw := range rws{
 			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)

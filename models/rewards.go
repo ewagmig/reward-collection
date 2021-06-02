@@ -533,7 +533,7 @@ func ProcessSendBackground() {
 	var (
 		ctx        = context.Background()
 	)
-	logrus.Infof("Begin to sync Epoch background")
+	logrus.Infof("Begin to Process Send background")
 	err := ProcessSend(ctx)
 	if err != nil{
 		logrus.Errorf("Failed to process send background with error %v", err)
