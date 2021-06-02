@@ -49,4 +49,4 @@ log:
   kafka:
     servers: kafka-01.sinnet.huobiidc.com:9092,kafka-02.sinnet.huobiidc.com:9092,kafka-03.sinnet.huobiidc.com:9092,kafka-04.sinnet.huobiidc.com:9092,kafka-05.sinnet.huobiidc.com:9092,kafka-06.sinnet.huobiidc.com:9092
   level: 4
-  topic: "applog-wallet"
+  topic: "applog-heco"
