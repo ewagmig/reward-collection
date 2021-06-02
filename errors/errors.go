@@ -10,7 +10,7 @@ import (
 )
 
 //var logger = logging.MustGetLogger("rewards.collection.errors")
-var logger *logrus.Logger
+var logger = logrus.New()
 // APIError defines the baas server API error
 type APIError interface {
 	error

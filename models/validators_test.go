@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -442,4 +443,51 @@ func TestGetRewardsInEPs(t *testing.T) {
 	total := sum(rbig)
 	t.Log(total)
 
+}
+
+func TestGetDataAmount(t *testing.T) {
+	valMapDist := make(map[string]*big.Int)
+
+	valMapDist["0000000000000000000000000c7c3f651ca16346d000eeb9b6f78997ec9be28d"] = big.NewInt(5330510894999998)
+	valMapDist["0000000000000000000000002512d871e388a97e35f5ae8c46344077166c9a07"] = big.NewInt(4145952918333332)
+	//valMapDist["0000000000000000000000004706040ed70f257288b1acc04de74372720025ba"] = big.NewInt(6515068871666664)
+	//valMapDist["0000000000000000000000007567e32efe4812f02d19216fe9c0709e4b7c612b"] = big.NewInt(5330510894999998)
+	//valMapDist["0000000000000000000000007be5c02f3569f57d519621b68c8953fa9f2c071f"] = big.NewInt(10068742801666662)
+	//valMapDist["000000000000000000000000b763487cbed3ac6a7401f7740d19b4401b948402"] = big.NewInt(5330510894999998)
+	//valMapDist["000000000000000000000000b88c622adf4a878a7caee487c1356e13421b8267"] = big.NewInt(2961394941666666)
+	//valMapDist["000000000000000000000000d87a1c95b941f633a7bc0735a57d8e90f9a187b7"] = big.NewInt(27837112451666652)
+	//valMapDist["000000000000000000000000e11a5fe5cfdf07373e1130628cc25b76580337b4"] = big.NewInt(4145952918333332)
+	//valMapDist["000000000000000000000000f12a627bd37a326fb3e628017cf04538cf9a9625"] = big.NewInt(5330510894999998)
+	//valMapDist["000000000000000000000000fc79ee2d5d6746e2280a0e57834b0390c0e0257c"] = big.NewInt(5330510894999998)
+
+
+
+	dataStr, amstr := getNotifyAmountData(valMapDist)
+
+	t.Log(dataStr, amstr)
+}
+
+func TestCalcuHex(t *testing.T) {
+	hexstr := "0000000000000000000000000000000000000000000000000012f012485e29be"
+	hexstr = "0x" + removeConZero(hexstr)
+	t.Log("Hex string is", hexstr)
+
+	big, _ := hexutil.DecodeBig(hexstr)
+	t.Log(big.String())
+
+}
+
+func TestGetRewardsInEPsut(t *testing.T) {
+	db, err := InitDB(connStr)
+	if err != nil {
+		t.Error(err)
+	}
+	valAddr := "000000000000000000000000d87a1c95b941f633a7bc0735a57d8e90f9a187b7"
+	epStart := int64(26080)
+	epEnd := int64(26082)
+	valDist, err := fetchValToDisWithinEPUT(context.Background(), valAddr, db, epStart, epEnd)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(valDist)
 }

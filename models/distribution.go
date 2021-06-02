@@ -24,7 +24,7 @@ import (
 
 var (
 	//distributionlogger = logging.MustGetLogger("rewards.distribution.models")
-	distributionlogger *logrus.Logger
+	distributionlogger = logrus.New()
 	EPDuration = int64(3)
 	//sysAddr should be provided by gateway service side
 	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"

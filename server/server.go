@@ -20,7 +20,7 @@ const (
 )
 
 //var logger = logging.MustGetLogger("common.server")
-var logger *logrus.Logger
+var logger = logrus.New()
 // Mode represents DEV or PROD
 type Mode int
 

@@ -25,7 +25,7 @@ var (
 	versionFlag bool
 	logOutput   = os.Stderr
 	//logger      = logging.MustGetLogger("common.main")
-	logger *logrus.Logger
+	logger = logrus.New()
 	mainCmd = &cobra.Command{
 		Use:   "commonComponent",
 		Short: "commonComponent is a utility for managing fabric blockchain configurations",
@@ -93,14 +93,14 @@ func initConf() {
 	viper.SetEnvKeyReplacer(replacer)
 
 	viper.SetConfigName(mode)
-	//envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
-	//if envVal != "" {
-	//	viper.AddConfigPath(envVal)
-	//} else {
-	//	viper.AddConfigPath("conf/")
-	//}
+	envVal := os.Getenv("FABRIC_BAAS_CFG_PATH")
+	if envVal != "" {
+		viper.AddConfigPath(envVal)
+	} else {
+		viper.AddConfigPath("conf/")
+	}
 
-	viper.AddConfigPath("conf/")
+	//viper.AddConfigPath("conf/")
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Errorf("Fatal error config file: %s", err)

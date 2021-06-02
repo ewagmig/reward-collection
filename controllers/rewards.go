@@ -12,7 +12,7 @@ import (
 )
 
 //var rewardslogger = logging.MustGetLogger("rewards.collection.controller")
-var rewardslogger *logrus.Logger
+var rewardslogger = logrus.New()
 
 func init() {
 	err := server.RegisterController(&rewardsCol{})

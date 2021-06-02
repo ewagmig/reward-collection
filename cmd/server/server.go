@@ -13,7 +13,7 @@ const (
 
 var (
 	//logger = logging.MustGetLogger("common.cmd.server")
-	logger *logrus.Logger
+	logger = logrus.New()
 )
 
 func Cmd() *cobra.Command {

@@ -15,7 +15,7 @@ import (
 )
 
 //var blockslogger = logging.MustGetLogger("blocks.scraper.models")
-var blockslogger *logrus.Logger
+var blockslogger = logrus.New()
 
 /*
 eth.getBlockByNumber:transactions, iterate transactions[],

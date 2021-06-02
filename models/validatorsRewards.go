@@ -516,22 +516,20 @@ func getNotifyAmountData(valMapDist map[string]*big.Int) (da, amount string){
 	//to assemble the original data
 	//addrPrefix := "000000000000000000000000"
 	var valaddrs string
-	for k := range valMapDist {
-		valkey := k
-		valaddrs = valaddrs + valkey
-	}
-	//address[] calldata
-	addrCalldata := lengthPad + valaddrs
-
 	var valValues string
 	var vas []*big.Int
-	for _, v := range valMapDist {
+	for k, v := range valMapDist {
+		valkey := k
+		valaddrs = valaddrs + valkey
 		vas = append(vas, v)
 		dist := hexutil.EncodeBig(v)
 		dist = strings.TrimPrefix(dist, "0x")
 		distpad := fmt.Sprintf("%064s", dist)
 		valValues  = valValues + distpad
 	}
+	//address[] calldata
+	addrCalldata := lengthPad + valaddrs
+
 	distcalldata := lengthPad + valValues
 
 	offsetAddrs := fmt.Sprintf("%064s", "40")
