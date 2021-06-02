@@ -189,12 +189,14 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 
 	rawTx, txHash, err := helper.fetchRawTx(ctx, epStart, epEnd, archiveNode)
 	if err != nil {
+		logrus.Errorf("Error when fetching raw tx %v", err)
 		return false, err
 	}
 
 	//fetch the pending nonce for sending transaction
 	nonce, err := fetchPendingNonce(ctx, archiveNode, sysAddr)
 	if err != nil {
+		logrus.Errorf("Get nonce error %v", err)
 		return false, err
 	}
 
@@ -219,7 +221,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 	helper.RawTx = rawTx
 	helper.TxHash = txHash
 	helper.valMap = valmap
-
+	logrus.Infof("The helper updadted with info %v", helper)
 
 	logrus.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
 	return true, nil
@@ -506,19 +508,25 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 	}
 	deltaEP := epEnd - epStart + 1
 	logrus.Debugf("The deltaEP is %d and the eplist is %v", deltaEP, eplist)
-	//rw := db.Where("validator_addr = ? and epoch_index IN ?", valAddr, eplist).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
-	rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
-		//batch processing the results
-		for _, rw := range rws{
-			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
-			if ok{
-				valds = append(valds, rwbig)
-			}
+	MDB(ctx).Find(&rws).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false)
+	for _, rw := range rws{
+		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+		if ok{
+			valds = append(valds, rwbig)
 		}
-		return nil
-	})
-
-	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
+	}
+	//rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+	//	//batch processing the results
+	//	for _, rw := range rws{
+	//		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+	//		if ok{
+	//			valds = append(valds, rwbig)
+	//		}
+	//	}
+	//	return nil
+	//})
+	//
+	//logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
 
@@ -631,18 +639,25 @@ func fetchValToDisWithinEPUT(ctx context.Context, valAddr string, db *gorm.DB, e
 	deltaEP := epEnd - epStart + 1
 	logrus.Debugf("The deltaEP is %d and the eplist is %v", deltaEP, eplist)
 	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
-	rw := db.Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
-		//batch processing the results
-		for _, rw := range rws{
-			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
-			if ok{
-				valds = append(valds, rwbig)
-			}
+	db.Find(&rws).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false)
+	for _, rw := range rws{
+		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+		if ok{
+			valds = append(valds, rwbig)
 		}
-		return nil
-	})
-
-	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
+	}
+	//rw := db.Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+	//	//batch processing the results
+	//	for _, rw := range rws{
+	//		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+	//		if ok{
+	//			valds = append(valds, rwbig)
+	//		}
+	//	}
+	//	return nil
+	//})
+	//
+	//logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
 

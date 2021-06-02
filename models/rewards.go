@@ -501,7 +501,7 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 	//if err1 != nil {
 	//	return 0, err1
 	//}
-	//receipt, err2 := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(sr.TxHash)))
+	//receipt, err2 := client.TransactionReceipt(context.BackGround(), common.Hash(utils.HexToHash(sr.TxHash)))
 	//if err2 != nil {
 	//	return 0, err2
 	//}
