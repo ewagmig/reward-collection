@@ -463,27 +463,31 @@ func ProcessEpoch(ctx context.Context) (LaIndex uint64, err error) {
 	helper := newBlockHelper()
 	laInfo, err := helper.ProcessSync(ctx)
 	if err != nil {
+		logrus.Errorf("There is error with process Epoch %v", err)
 		return uint64(0), err
 	}
 	return laInfo, nil
 }
 
 func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err error) {
-	helper.mu.Lock()
+	//helper.mu.Lock()
 	epstore := helper.GetStoreEPIndex(ctx)
 	laInfo := ScramChainInfo(helper.ArchNode)
-	helper.mu.Unlock()
+	//helper.mu.Unlock()
 	logrus.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
 	if laInfo.EpochIndex > epstore {
 		epgap := laInfo.EpochIndex - epstore
+		logrus.Infof("The epoch gap is %d:", epgap)
 		for i := epgap; i > 0; i -- {
 			err = helper.SaveEpochData(ctx, laInfo.EpochIndex - i + 1)
 			if err != nil {
+				logrus.Errorf("The error for save Epoch data is %v", err)
 				return uint64(0), err
 			}
 			//try to save rewards info into database
 			err = helper.SaveVals(ctx, laInfo.EpochIndex - i + 1)
 			if err != nil {
+				logrus.Errorf("The error for save vals data is %v", err)
 				return uint64(0), err
 			}
 		}
@@ -516,11 +520,12 @@ func SyncEpochBackground() {
 	var (
 		ctx        = context.Background()
 	)
+	logrus.Infof("Begin to sync Epoch background")
 	epIndex, err := ProcessEpoch(ctx)
 	if err != nil{
 		logrus.Errorf("Failed to sync background with epoch data parsing with error %v in epoch index %d", err, epIndex)
 	}
-	logrus.Debugf("Sync epoch success with latest epoch index %d", epIndex)
+	logrus.Infof("Sync epoch success with latest epoch index %d", epIndex)
 }
 
 //process Send background
@@ -528,9 +533,10 @@ func ProcessSendBackground() {
 	var (
 		ctx        = context.Background()
 	)
+	logrus.Infof("Begin to sync Epoch background")
 	err := ProcessSend(ctx)
 	if err != nil{
 		logrus.Errorf("Failed to process send background with error %v", err)
 	}
-	logrus.Debugf("Process send distribution success!")
+	logrus.Infof("Process send distribution success!")
 }

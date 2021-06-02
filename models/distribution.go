@@ -83,13 +83,13 @@ func newSendHelper() *sendHelper {
 	}
 }
 
-//todo kibana log
 
 //ProcessSend is the entrypoint of send module
 func ProcessSend(ctx context.Context) error{
 	helper := newSendHelper()
 	err := helper.DoSend(ctx)
 	if err != nil {
+		logrus.Errorf("Error when ProcessSend %v", err)
 		return err
 	}
 	return nil
@@ -103,15 +103,18 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 	//laInfo := ScramChainInfo(helper.ArchNode)
 	epEnd := uint64(ep.EpochIndex)
 	epStart := epEnd - uint64(EPDuration) + 1
-
+	logrus.Infof("DoSend within the epoch between epStart %d and epEnd %d", epStart, epEnd)
 	//1. begin pre send process
 	preSendBool, err := helper.PreSend(ctx, epStart, epEnd, helper.ArchNode)
 	if preSendBool && (err == nil) {
 		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
 			logrus.Infof("Begin to send raw tx with txHash %s", helper.TxHash)
 			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode)
+			if err2 != nil {
+				logrus.Errorf("Send Distribution error %v", err2)
+			}
 			//send check success
-			if sendBool && (err2 == nil){
+			if sendBool{
 				logrus.Infof("Finish send raw tx with txHash %s", helper.TxHash)
 				var vals []*ValDist
 				for v := range helper.valMap{
@@ -128,8 +131,10 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 				//update the database when successful
 				err3 := PostSend(ctx, vals, sr)
 				if err3 != nil {
+					logrus.Errorf("There is error when PostSend %v", err3)
 					return err3
 				}
+				return nil
 			}
 		}
 	}
@@ -279,7 +284,10 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool,
 	targetNodes := []string{}
 	targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
 	for _, v := range targetNodes{
-		rpcClient, _ := rpc.Dial(v)
+		rpcClient, err := rpc.Dial(v)
+		if err != nil{
+			logrus.Errorf("There is error when send distribution %v", err)
+		}
 		_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
 	}
 
@@ -292,14 +300,17 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool,
 	MDB(context.TODO()).Where("raw_tx = ?", rawTx).First(&sr)
 	nonceDB := sr.Nonce
 
+	logrus.Infof("The nonceAt is %d and nonce in DB is %d", nonceAt, nonceDB)
 	////catch the receipt status
 	client, err := ethclient.Dial(archNode)
 	if err != nil {
+		logrus.Errorf("There is error when Dial client %v", err)
 		return false, err
 	}
 	defer client.Close()
 	receipt, err := client.TransactionReceipt(context.TODO(), common.Hash(utils.HexToHash(txHash)))
 	if err != nil{
+		logrus.Errorf("There is error when getting transaction receipt %v", err)
 		return false, err
 	}
 	//1. 没有上链   SR-Status：pending
@@ -311,7 +322,8 @@ func (helper *sendHelper)SendDistribution(rawTx, txHash, archNode string) (bool,
 
 	//use the selection case to verify the success of the tx
 	if receipt.Status == uint64(0) || (int64(nonceAt) == nonceDB){
-		return false, nil
+		logrus.Errorf("Could not get the tx with receipt! Pending or not broadcasting!")
+		return false, errors.BadRequestError(errors.EthCallError, "Could not get the tx status in receipt")
 	}
 
 	return true, nil
@@ -384,7 +396,7 @@ func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 	for _, valD := range vals {
 		affectedRows, err := updateDisInDB(ctx, valD)
 		if affectedRows == int64(0) || err != nil {
-			logrus.Errorf("The updating distributed flag error with val addr %s", valD.ValAddr)
+			logrus.Errorf("The updating distributed flag error with val addr %s, with error %v", valD.ValAddr, err)
 			continue
 		}
 	}

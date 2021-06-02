@@ -58,7 +58,7 @@ func init() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	kafkalog.AddConsoleOut(4)
+	kafkalog.AddConsoleOut(5)
 	kafkalog.AddField("app", "reward-collection")
 }
 
