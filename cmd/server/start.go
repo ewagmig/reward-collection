@@ -2,6 +2,7 @@ package server
 
 import (
 	decron "github.com/robfig/cron/v3"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	_ "github.com/starslabhq/rewards-collection/controllers"
@@ -28,7 +29,7 @@ func startCmd() *cobra.Command {
 }
 
 func start(mode string) error {
-	logger.Infof("Start heco common component server in %s mode, with %s", mode, version.Version())
+	logrus.Infof("Start heco common component server in %s mode, with %s", mode, version.Version())
 
 	s := server.New(getServerOptions(mode)...)
 	// make the cron job
@@ -44,7 +45,7 @@ func start(mode string) error {
 	go func() {
 		err := s.Startup(listenAddr)
 		if err != nil {
-			logger.Errorf("Fail to startup server with error: %v", err)
+			logrus.Errorf("Fail to startup server with error: %v", err)
 			fastexit <- struct{}{}
 		}
 	}()
@@ -54,16 +55,16 @@ func start(mode string) error {
 
 	select {
 	case <-quit:
-		logger.Info("Shutdown baas server...")
+		logrus.Info("Shutdown baas server...")
 		if err := s.Shutdown(3 * time.Second); err != nil {
-			logger.Errorf("Fail to shutdown baas server with error: %v", err)
+			logrus.Errorf("Fail to shutdown baas server with error: %v", err)
 			return err
 		}
 	case <-fastexit:
 		// DOTHING
 	}
 
-	logger.Info("Baas server exists...")
+	logrus.Info("Baas server exists...")
 	return nil
 }
 

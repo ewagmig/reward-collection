@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-//var logger = logging.MustGetLogger("rewards.collection.errors")
-var logger = logrus.New()
+//var logrus = logging.MustGetLogger("rewards.collection.errors")
+//var logrus = logrus.New()
 // APIError defines the baas server API error
 type APIError interface {
 	error
@@ -30,20 +30,20 @@ func (e *apiErrorImp) Error() string {
 }
 
 func (e *apiErrorImp) Write(c *gin.Context) {
-	logger.Errorf("errStatus: %d, errCode: %#08X, errMessage: APIError->%s", e.Status, e.Errorcode, e.Message)
+	logrus.Errorf("errStatus: %d, errCode: %#08X, errMessage: APIError->%s", e.Status, e.Errorcode, e.Message)
 	c.JSON(e.Status, e)
 	err := c.Error(e)
 	if err != nil {
-		logger.Errorf("Api error implement write err: '%v'", err)
+		logrus.Errorf("Api error implement write err: '%v'", err)
 	}
 }
 
 func (e *apiErrorImp) WriteAbort(c *gin.Context) {
-	logger.Errorf("errStatus: %d, errCode: %#08X, errMessage: APIError->%s", e.Status, e.Errorcode, e.Message)
+	logrus.Errorf("errStatus: %d, errCode: %#08X, errMessage: APIError->%s", e.Status, e.Errorcode, e.Message)
 	c.JSON(e.Status, e)
 	err := c.Error(e)
 	if err != nil {
-		logger.Errorf("Api error implement write err: '%v'", err)
+		logrus.Errorf("Api error implement write err: '%v'", err)
 	}
 	c.Abort()
 }
@@ -145,7 +145,7 @@ func toAPIError(errcode Code, msg string, err error) APIError {
 		errmsg = err.Error()
 	}
 
-	logger.Errorf("Unexpected server error: errorCode: %d, errorMessage: %s, detail: %s", errcode, errmsg, err)
+	logrus.Errorf("Unexpected server error: errorCode: %d, errorMessage: %s, detail: %s", errcode, errmsg, err)
 	return &apiErrorImp{
 		Status:    http.StatusInternalServerError,
 		Errorcode: errcode,

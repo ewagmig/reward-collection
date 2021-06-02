@@ -11,13 +11,13 @@ import (
 	"net/http"
 )
 
-//var rewardslogger = logging.MustGetLogger("rewards.collection.controller")
-var rewardslogger = logrus.New()
+//var logrus = logging.MustGetLogger("rewards.collection.controller")
+//var logrus = logrus.New()
 
 func init() {
 	err := server.RegisterController(&rewardsCol{})
 	if err != nil {
-		rewardslogger.Errorf("user can not be registered")
+		logrus.Errorf("user can not be registered")
 	}
 }
 

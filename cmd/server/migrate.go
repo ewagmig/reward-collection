@@ -1,10 +1,11 @@
 package server
 
 import (
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	_ "github.com/starslabhq/rewards-collection/migration/source"
 	"github.com/starslabhq/rewards-collection/server"
 	"github.com/starslabhq/rewards-collection/version"
-	"github.com/spf13/cobra"
 )
 
 func migrateCmd() *cobra.Command {
@@ -12,7 +13,7 @@ func migrateCmd() *cobra.Command {
 }
 
 func migrate(mode string) error {
-	logger.Infof("Start to migrate in %s mode, with %s", mode, version.Version())
+	logrus.Infof("Start to migrate in %s mode, with %s", mode, version.Version())
 	return server.RunMigration()
 }
 

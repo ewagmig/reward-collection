@@ -52,7 +52,7 @@ type ValidatorInfo struct {
 //todo check the dial target, checkout with the archive node access
 func BestArchNode(archNodes []string) (string) {
 	if len(archNodes) == 0 {
-		blockslogger.Errorf("The Arch Nodes candidate list is empty!")
+		logrus.Errorf("The Arch Nodes candidate list is empty!")
 		return ""
 	}
 
@@ -60,7 +60,7 @@ func BestArchNode(archNodes []string) (string) {
 	for _, v := range archNodes{
 		blkHeight, err := getBlockNumber(v)
 		if err != nil {
-			blockslogger.Errorf("This Arch Nodes Fetch height error!")
+			logrus.Errorf("This Arch Nodes Fetch height error!")
 			blkHeight = big.NewInt(0)
 		}
 		archMapHeight[v] = blkHeight
@@ -494,7 +494,7 @@ func jsonrpcEthCallNotifyAmount(archNode string, valMapDist map[string]*big.Int)
 	})
 
 	if err != nil || resp.Error != nil{
-		distributionlogger.Errorf("call notifyReward contract error %v", err)
+		logrus.Errorf("call notifyReward contract error %v", err)
 		return err
 	}
 

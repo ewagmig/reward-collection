@@ -225,7 +225,7 @@ func signGateway(archNode, sysAddr string, valMapDist map[string]*big.Int) (encR
 
 	req1.Host = AwsV4SigHeader
 	_, err = SignRequestWithAwsV4UseQueryString(req1,key,"blockchain","signer")
-	//distributionlogger.Infof("the sp is %v", sp)
+	//logrus.Infof("the sp is %v", sp)
 	resp, err := myclient.Do(req1)
 	if err != nil {
 		return

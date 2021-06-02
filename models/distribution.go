@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	//distributionlogger = logging.MustGetLogger("rewards.distribution.models")
-	distributionlogger = logrus.New()
+	//logrus = logging.MustGetLogger("rewards.distribution.models")
+	//logrus = logrus.New()
 	EPDuration = int64(3)
 	//sysAddr should be provided by gateway service side
 	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
@@ -73,7 +73,7 @@ type DecParams struct {
 func newSendHelper() *sendHelper {
 	archNode := viper.GetString("server.archiveNodeUrl")
 	if len(archNode) == 0 {
-		blockslogger.Errorf("No archNode config!")
+		logrus.Errorf("No archNode config!")
 		return nil
 	}
 
@@ -108,11 +108,11 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 	preSendBool, err := helper.PreSend(ctx, epStart, epEnd, helper.ArchNode)
 	if preSendBool && (err == nil) {
 		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
-			distributionlogger.Infof("Begin to send raw tx with txHash %s", helper.TxHash)
+			logrus.Infof("Begin to send raw tx with txHash %s", helper.TxHash)
 			sendBool, err2 := helper.SendDistribution(helper.RawTx, helper.TxHash, helper.ArchNode)
 			//send check success
 			if sendBool && (err2 == nil){
-				distributionlogger.Infof("Finish send raw tx with txHash %s", helper.TxHash)
+				logrus.Infof("Finish send raw tx with txHash %s", helper.TxHash)
 				var vals []*ValDist
 				for v := range helper.valMap{
 					val := &ValDist{
@@ -141,18 +141,18 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, archiveNode string) (string, string, error) {
 	valmap, err := PumpDistInfo(ctx, epStart, epEnd, helper.ArchNode)
 	if err != nil {
-		distributionlogger.Errorf("Fetch validator distribution error %v", err)
+		logrus.Errorf("Fetch validator distribution error %v", err)
 		return "", "", err
 	}
 	if len(valmap) == 0 {
-		distributionlogger.Errorf("Fetch validator distribution error %v", err)
+		logrus.Errorf("Fetch validator distribution error %v", err)
 		return "", "", err
 	}
 
 	//get the gateway encrypted data
 	encData, err := signGateway(archiveNode, sysAddr, valmap)
 	if err != nil {
-		distributionlogger.Errorf("Fetch enc data from gateway service error %v", err)
+		logrus.Errorf("Fetch enc data from gateway service error %v", err)
 		return "", "", err
 	}
 
@@ -173,11 +173,11 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bool, error){
 	valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
 	if err != nil {
-		distributionlogger.Errorf("Fetch validator distribution error %v", err)
+		logrus.Errorf("Fetch validator distribution error %v", err)
 		return false, err
 	}
 	if len(valmap) == 0 {
-		distributionlogger.Errorf("Fetch validator distribution error %v", err)
+		logrus.Errorf("Fetch validator distribution error %v", err)
 		return false, err
 	}
 
@@ -203,7 +203,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 	}
 
 	//save the send record
-	distributionlogger.Infof("Beigin to save the send record")
+	logrus.Infof("Beigin to save the send record")
 	err = SaveSendRecord(context.TODO(), sr)
 	if err != nil {
 		return false, err
@@ -215,7 +215,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 	helper.valMap = valmap
 
 
-	distributionlogger.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
+	logrus.Infof("Prepare to send from epStart %d and epEnd %d with result %v", epStart, epEnd, valmap)
 	return true, nil
 }
 
@@ -253,7 +253,7 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 	//Post the response
 	resp, err := myclient.Do(req1)
 	if err != nil {
-		distributionlogger.Errorf("Validator service check failed")
+		logrus.Errorf("Validator service check failed")
 		return "", false
 	}
 	defer resp.Body.Close()
@@ -345,7 +345,7 @@ func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 
 	//catch the receipt status
 	if receipt.Status == uint64(1){
-		distributionlogger.Debugf("The transaction is success!")
+		logrus.Debugf("The transaction is success!")
 	}
 	//take action to handle the receipt logs
 	//event NotifyRewardSummary(uint256 inputLength, uint256 okLength), there is no indexed, only in data field
@@ -368,9 +368,9 @@ func ContractEventListening(archnode, txhash string) (uint64, uint64, error){
 	}
 
 	//done no need to do extra operation
-	distributionlogger.Infof("The input pools number is %d, and the success execution in contract is %d", inLen, okLen)
+	logrus.Infof("The input pools number is %d, and the success execution in contract is %d", inLen, okLen)
 	if inLen != okLen {
-		distributionlogger.Errorf("There have been data mismatch during execution in contract!")
+		logrus.Errorf("There have been data mismatch during execution in contract!")
 	}
 
 	return inLen, okLen, nil
@@ -384,7 +384,7 @@ func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 	for _, valD := range vals {
 		affectedRows, err := updateDisInDB(ctx, valD)
 		if affectedRows == int64(0) || err != nil {
-			distributionlogger.Errorf("The updating distributed flag error with val addr %s", valD.ValAddr)
+			logrus.Errorf("The updating distributed flag error with val addr %s", valD.ValAddr)
 			continue
 		}
 	}
@@ -393,10 +393,10 @@ func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 	//var sr *SendRecord
 	err := UpdateSendRecord(ctx, sr)
 	if err != nil {
-		distributionlogger.Errorf("Updating the send record table failed")
+		logrus.Errorf("Updating the send record table failed")
 	}
 
-	distributionlogger.Infof("Sending from %d to %d finished", vals[0].ThisEpoch, vals[0].LastEpoch)
+	logrus.Infof("Sending from %d to %d finished", vals[0].ThisEpoch, vals[0].LastEpoch)
 	return nil
 
 }
@@ -411,7 +411,7 @@ func updateDisInDB(ctx context.Context, valD *ValDist) (int64, error) {
 	}
 	db := MDB(ctx).Model(&rw).Where("validator_addr = ? and epoch_index IN ?", valD.ValAddr, eplist).Updates(map[string]interface{}{"distributed": true})
 	if db.RowsAffected != deltaEP || db.Error != nil {
-		distributionlogger.Errorf("Update distribution in db error")
+		logrus.Errorf("Update distribution in db error")
 		return 0, errors.BadRequestError(errors.DatabaseError, "Update distribution in db error")
 	}
 	return db.RowsAffected, nil
@@ -467,7 +467,7 @@ func fetchValDist(ctx context.Context, valAddr string) (*ValDist, error) {
 		}
 		return nil
 	})
-	distributionlogger.Debugf("The rows affected should be %d", rw.RowsAffected)
+	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 
 	//get the total distribution
 	totald := sum(valds)
@@ -501,7 +501,7 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 		return nil
 	})
 
-	distributionlogger.Debugf("The rows affected should be %d", rw.RowsAffected)
+	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
 
@@ -532,7 +532,7 @@ func FetchTotalRewardsEPs(ctx context.Context, epStart, epEnd uint64) (*big.Int,
 		}
 		return nil
 	})
-	distributionlogger.Debugf("The rows affected should be %d", ep.RowsAffected)
+	logrus.Debugf("The rows affected should be %d", ep.RowsAffected)
 
 	totald := sum(total)
 	return totald, nil
@@ -565,7 +565,7 @@ func fetchValDistForUT(ctx context.Context, EPs int, valAddr string, db *gorm.DB
 		}
 		return nil
 	})
-	distributionlogger.Debugf("The rows affected should be %d", rw.RowsAffected)
+	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 
 	//get the total distribution
 	totald := sum(valds)
@@ -624,7 +624,7 @@ func fetchValToDisWithinEPUT(ctx context.Context, valAddr string, db *gorm.DB, e
 		return nil
 	})
 
-	distributionlogger.Debugf("The rows affected should be %d", rw.RowsAffected)
+	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
 
@@ -648,7 +648,7 @@ func updateDisInDBUT(ctx context.Context, valD *ValDist, tx *gorm.DB) (int64, er
 	db := tx.Model(&rw).Where("validator_addr = ? and epoch_index IN ?", valD.ValAddr, eplist).Updates(map[string]interface{}{"distributed": 1})
 
 	if db.RowsAffected != deltaEP || db.Error != nil {
-		distributionlogger.Errorf("Update distribution in db error")
+		logrus.Errorf("Update distribution in db error")
 		return 0, errors.BadRequestError(errors.DatabaseError, "Update distribution in db error")
 	}
 	return db.RowsAffected, nil

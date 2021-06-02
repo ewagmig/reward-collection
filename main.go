@@ -26,7 +26,7 @@ var (
 	versionFlag bool
 	logOutput   = os.Stderr
 	//logger      = logging.MustGetLogger("common.main")
-	logger = logrus.New()
+	//logger = logrus.New()
 	mainCmd = &cobra.Command{
 		Use:   "commonComponent",
 		Short: "commonComponent is a utility for managing fabric blockchain configurations",
@@ -54,7 +54,8 @@ func init() {
 	brokers := viper.GetStringSlice("log.kafka.servers")
 	level := viper.GetInt("log.level")
 	kafkalog.AddKafkaHook(topic, brokers, level)
-
+	kafkalog.AddConsoleOut(3)
+	kafkalog.AddField("hello", "world")
 }
 
 func main() {
@@ -110,7 +111,7 @@ func initConf() {
 	viper.AddConfigPath("conf/")
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Errorf("Fatal error config file: %s", err)
+		logrus.Errorf("Fatal error config file: %s", err)
 		os.Exit(1)
 	}
 }

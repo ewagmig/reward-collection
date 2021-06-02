@@ -77,7 +77,7 @@ type blockHelper struct {
 func newBlockHelper() *blockHelper {
 	archNode := viper.GetString("server.archiveNodeUrl")
 	if len(archNode) == 0 {
-		blockslogger.Errorf("No archNode config!")
+		logrus.Errorf("No archNode config!")
 		return nil
 	}
 	return &blockHelper{
@@ -117,10 +117,10 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	rewards := getFeesInEPStore(ctx, epochIndex)
 	vals, err := calcuDistInEpoch(epochIndex, rewards, helper.ArchNode)
 	if err != nil{
-		blockslogger.Errorf("Calculate rewards error '%v'", err)
+		logrus.Errorf("Calculate rewards error '%v'", err)
 	}
 
-	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+	logrus.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
 
 	RWs := []*Reward{}
 	//use batch to insert data
@@ -143,13 +143,13 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	defer tx.Rollback()
 
 	if err := tx.Create(RWs).Error; err != nil {
-		blockslogger.Errorf("Create rewards error '%v'", err)
+		logrus.Errorf("Create rewards error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+		return processDBErr(err, "", "Failed to create rewards caused by error %v", err)
 	}
 	tx.Commit()
 
-	blockslogger.Infof("[Epoch Index %d ] Finish to store reward data for validators", epochIndex)
+	logrus.Infof("[Epoch Index %d ] Finish to store reward data for validators", epochIndex)
 	return nil
 
 }
@@ -164,9 +164,9 @@ func SaveSendRecord(ctx context.Context, record *SendRecord) error {
 	defer tx.Rollback()
 
 	if err := tx.Create(record).Error; err != nil {
-		blockslogger.Errorf("Create record error '%v'", err)
+		logrus.Errorf("Create record error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to store record caused by error %v", err)
+		return processDBErr(err, "Failed to store record caused by error %v", err)
 	}
 	tx.Commit()
 	return nil
@@ -183,9 +183,9 @@ func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
 	defer tx.Rollback()
 
 	if err := tx.Model(record).Update("stat", RecordSuccess).Where("raw_tx = ?", record.RawTx).Error; err != nil {
-		blockslogger.Errorf("Update record error '%v'", err)
+		logrus.Errorf("Update record error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
+		return processDBErr(err, "Failed to update record caused by error %v", err)
 	}
 	tx.Commit()
 	return nil
@@ -201,9 +201,9 @@ func UpdateSendRecordFailed(ctx context.Context, record *SendRecord) error {
 	defer tx.Rollback()
 
 	if err := tx.Model(record).Update("stat", RecordFailed).Where("raw_tx = ?", record.RawTx).Error; err != nil {
-		blockslogger.Errorf("Update record error '%v'", err)
+		logrus.Errorf("Update record error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to update record caused by error %v", err)
+		return processDBErr(err, "Failed to update record caused by error %v", err)
 	}
 	tx.Commit()
 	return nil
@@ -215,10 +215,10 @@ func (helper *blockHelper)SaveValsForUT(ctx context.Context, epochIndex uint64, 
 	rewards := getFeesInEPStoreForUT(ctx, epochIndex, tx)
 	vals, err := mockCalcDisInEpoch(epochIndex, rewards)
 	if err != nil{
-		blockslogger.Errorf("Calculate rewards error '%v'", err)
+		logrus.Errorf("Calculate rewards error '%v'", err)
 	}
 
-	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+	logrus.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
 
 	RWs := []*Reward{}
 	//use batch to insert data
@@ -241,13 +241,13 @@ func (helper *blockHelper)SaveValsForUT(ctx context.Context, epochIndex uint64, 
 	defer tx.Rollback()
 
 	if err := tx.Create(RWs).Error; err != nil {
-		blockslogger.Errorf("Create rewards error '%v'", err)
+		logrus.Errorf("Create rewards error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+		return processDBErr(err,  "Failed to create rewards caused by error %v", err)
 	}
 	tx.Commit()
 
-	blockslogger.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
+	logrus.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)
 	return nil
 
 }
@@ -269,9 +269,9 @@ func saveValRewardForUT(ctx context.Context, valInfo *ValRewardsInfo, db *gorm.D
 	}
 
 	if err := tx.Create(valReward).Error; err != nil {
-		blockslogger.Errorf("Create rewards error '%v'", err)
+		logrus.Errorf("Create rewards error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+		return processDBErr(err, "Failed to create rewards caused by error %v", err)
 	}
 	tx.Commit()
 	return nil
@@ -293,9 +293,9 @@ func saveValReward(ctx context.Context, valInfo *ValRewardsInfo) error {
 	}
 
 	if err := tx.Create(valReward).Error; err != nil {
-		blockslogger.Errorf("Create rewards error '%v'", err)
+		logrus.Errorf("Create rewards error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to create rewards caused by error %v", err)
+		return processDBErr(err,  "Failed to create rewards caused by error %v", err)
 	}
 	tx.Commit()
 	return nil
@@ -303,7 +303,7 @@ func saveValReward(ctx context.Context, valInfo *ValRewardsInfo) error {
 
 //saveEpoch for server mode
 func saveEpoch(ctx context.Context, info *BlockchainInfo) error {
-	blockslogger.Infof("[Epoch Index %d ] Start to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
+	logrus.Infof("[Epoch Index %d ] Start to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
@@ -316,19 +316,19 @@ func saveEpoch(ctx context.Context, info *BlockchainInfo) error {
 	}
 
 	if err := tx.Create(blockRewards).Error; err != nil {
-		blockslogger.Errorf("Create epoch error '%v'", err)
+		logrus.Errorf("Create epoch error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to create epoch caused by error %v", err)
+		return processDBErr(err, "Failed to create epoch caused by error %v", err)
 	}
 	tx.Commit()
-	blockslogger.Infof("[Epoch Index %d ] Finish to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
+	logrus.Infof("[Epoch Index %d ] Finish to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
 
 	return nil
 }
 
 // saveEpochForTest just for testing w/o server mode
 func saveEpochForTest(ctx context.Context, info *BlockchainInfo, db *gorm.DB) error {
-	blockslogger.Infof("[Epoch Index %d ] Start to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
+	logrus.Infof("[Epoch Index %d ] Start to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
 	tx := db
 	defer tx.Rollback()
 
@@ -341,19 +341,19 @@ func saveEpochForTest(ctx context.Context, info *BlockchainInfo, db *gorm.DB) er
 	}
 
 	if err := tx.Create(blockRewards).Error; err != nil {
-		blockslogger.Errorf("Create epoch error '%v'", err)
+		logrus.Errorf("Create epoch error '%v'", err)
 		tx.Rollback()
-		return processDBErr(err, blockslogger, "Failed to create epoch caused by error %v", err)
+		return processDBErr(err, "Failed to create epoch caused by error %v", err)
 	}
 	tx.Commit()
-	blockslogger.Infof("[Epoch Index %d ] Finish to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
+	logrus.Infof("[Epoch Index %d ] Finish to store epoch data for with fees %s", info.EpochIndex,info.TotalFees.String())
 
 	return nil
 }
 
 
-func processDBErr(err error, log *logrus.Logger, fmt string, args ...interface{}) error {
-	log.Errorf(fmt, args...)
+func processDBErr(err error, fmt string, args ...interface{}) error {
+	logrus.Errorf(fmt, args...)
 	return errors.DatabaseToAPIError(err)
 }
 
@@ -361,7 +361,7 @@ func processDBErr(err error, log *logrus.Logger, fmt string, args ...interface{}
 func (helper *blockHelper)SaveEpochData(ctx context.Context, epochIndex uint64) error {
 	info, err := GetEpochFees(helper.ArchNode, epochIndex)
 	if err != nil {
-		blockslogger.Errorf("Get epoch info error '%v'", err)
+		logrus.Errorf("Get epoch info error '%v'", err)
 		return errors.BadRequestError(errors.EthCallError, "Get epoch info error")
 	}
 	//begin to save data into mysql backend
@@ -385,13 +385,13 @@ func SetStartEpoch(ctx context.Context, archNode string, epochIndex uint64) (*Se
 	}
 	err := helper.SaveEpochData(ctx, epochIndex)
 	if err != nil {
-		blockslogger.Errorf("Save epoch info error '%v'", err)
+		logrus.Errorf("Save epoch info error '%v'", err)
 		return nil, errors.BadRequestError(errors.EthCallError, "Save epoch info error")
 	}
 
 	err = helper.SaveVals(ctx, epochIndex)
 	if err != nil {
-		blockslogger.Errorf("Save epoch rewards error '%v'", err)
+		logrus.Errorf("Save epoch rewards error '%v'", err)
 		return nil, errors.BadRequestError(errors.EthCallError, "Save epoch rewards error")
 	}
 	//get the record in database to verify
@@ -412,7 +412,7 @@ func SetStartEpoch(ctx context.Context, archNode string, epochIndex uint64) (*Se
 func (helper *blockHelper)SaveEpochDataForTest(ctx context.Context, epochIndex uint64, db *gorm.DB) error {
 	info, err := GetEpochFees(helper.ArchNode, epochIndex)
 	if err != nil {
-		blockslogger.Errorf("Get epoch info error '%v'", err)
+		logrus.Errorf("Get epoch info error '%v'", err)
 		return errors.BadRequestError(errors.EthCallError, "Get epoch info error")
 	}
 	//begin to save data into mysql backend
@@ -473,7 +473,7 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 	epstore := helper.GetStoreEPIndex(ctx)
 	laInfo := ScramChainInfo(helper.ArchNode)
 	helper.mu.Unlock()
-	blockslogger.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
+	logrus.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
 	if laInfo.EpochIndex > epstore {
 		epgap := laInfo.EpochIndex - epstore
 		for i := epgap; i > 0; i -- {
@@ -518,9 +518,9 @@ func SyncEpochBackground() {
 	)
 	epIndex, err := ProcessEpoch(ctx)
 	if err != nil{
-		blockslogger.Errorf("Failed to sync background with epoch data parsing with error %v in epoch index %d", err, epIndex)
+		logrus.Errorf("Failed to sync background with epoch data parsing with error %v in epoch index %d", err, epIndex)
 	}
-	blockslogger.Debugf("Sync epoch success with latest epoch index %d", epIndex)
+	logrus.Debugf("Sync epoch success with latest epoch index %d", epIndex)
 }
 
 //process Send background
@@ -530,7 +530,7 @@ func ProcessSendBackground() {
 	)
 	err := ProcessSend(ctx)
 	if err != nil{
-		blockslogger.Errorf("Failed to process send background with error %v", err)
+		logrus.Errorf("Failed to process send background with error %v", err)
 	}
-	blockslogger.Debugf("Process send distribution success!")
+	logrus.Debugf("Process send distribution success!")
 }

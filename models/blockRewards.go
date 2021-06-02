@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-//var blockslogger = logging.MustGetLogger("blocks.scraper.models")
-var blockslogger = logrus.New()
+//var logrus = logging.MustGetLogger("blocks.scraper.models")
+//var logrus = logrus.New()
 
 /*
 eth.getBlockByNumber:transactions, iterate transactions[],
@@ -66,14 +66,14 @@ func GetBlockEpochRewards(archNode string, epochIndex uint64) *big.Int {
 		//init the Client
 		Client, err := ethclient.Dial(archNode)
 		if err != nil {
-			blockslogger.Warningf("Dial archNode error!")
+			logrus.Warningf("Dial archNode error!")
 			return nil
 		}
 		defer Client.Close()
 		// retrieve the block, which includes all of the transactions
 		block, err := Client.BlockByNumber(context.TODO(), blockNum)
 		if err != nil {
-			blockslogger.Warningf("Error getting block %v by number: %v", blockNum, err)
+			logrus.Warningf("Error getting block %v by number: %v", blockNum, err)
 			continue
 		}
 
@@ -86,7 +86,7 @@ func GetBlockEpochRewards(archNode string, epochIndex uint64) *big.Int {
 			blockFee = big.NewInt(0)
 		}
 		if err != nil {
-			blockslogger.Warningf("Error getting block  fee %v by number: %v", blockNum, err)
+			logrus.Warningf("Error getting block  fee %v by number: %v", blockNum, err)
 			continue
 		}
 
@@ -114,9 +114,9 @@ func ScramChainInfo(archNode string) *BlockchainInfo {
 
 	// RPC call to retrieve the latest block
 	lastBlockNum, err := getBlockNumber(archNode)
-	blockslogger.Infof("The latest block numer is: %v", lastBlockNum)
+	logrus.Infof("The latest block numer is: %v", lastBlockNum)
 	if err != nil{
-		blockslogger.Errorf("Get latest block error: %v", err)
+		logrus.Errorf("Get latest block error: %v", err)
 	}
 
 	//get mod of the lastBlockNum % EP > 10 to prevent `reorg` issue
@@ -127,11 +127,11 @@ func ScramChainInfo(archNode string) *BlockchainInfo {
 		time.Sleep(30 * time.Second)
 		lastBlockNum, err = getBlockNumber(archNode)
 		if err != nil{
-			blockslogger.Errorf("Get latest block error: %v", err)
+			logrus.Errorf("Get latest block error: %v", err)
 		}
 		del.Mod(lastBlockNum, big.NewInt(int64(EP)))
 		if del.Cmp(big.NewInt(int64(10))) == -1 {
-			blockslogger.Warningf("No height updated, need to check the chain stability!")
+			logrus.Warningf("No height updated, need to check the chain stability!")
 			return nil
 		}
 	}
@@ -164,7 +164,7 @@ func GetEpochFees(archNode string, epochIndex uint64) (*BlockchainInfo, error) {
 			blockFee = big.NewInt(0)
 		}
 		if err != nil {
-			blockslogger.Errorf("Error getting block  fee %v by number: %v", blockNum, err)
+			logrus.Errorf("Error getting block  fee %v by number: %v", blockNum, err)
 			continue
 		}
 
@@ -183,7 +183,7 @@ func GetEpochFees(archNode string, epochIndex uint64) (*BlockchainInfo, error) {
 //getBlockFeesByBatch fetch the blockFees by batch
 func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error){
 	if blockNumber == nil {
-		blockslogger.Warningf("No block number to retrieve transactions from")
+		logrus.Warningf("No block number to retrieve transactions from")
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "Dial archNode error")
 	}
 
@@ -191,7 +191,7 @@ func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error
 	client, err := ethclient.Dial(archNode)
 	rpcclient, err := rpc.Dial(archNode)
 	if err != nil {
-		blockslogger.Warningf("Dial archNode error!")
+		logrus.Warningf("Dial archNode error!")
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "Dial archNode error: %v", err)
 	}
 	defer client.Close()
@@ -200,7 +200,7 @@ func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error
 	// retrieve the block, which includes all of the transactions
 	block, err := client.BlockByNumber(context.TODO(), blockNumber)
 	if err != nil {
-		blockslogger.Warningf("Error getting block %v by number: %v", blockNumber, err)
+		logrus.Warningf("Error getting block %v by number: %v", blockNumber, err)
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "Error getting block %v by number: %v", blockNumber, err)
 	}
 
@@ -239,14 +239,14 @@ func getBlockNumber(archNode string) (*big.Int, error) {
 	var lastBlockStr string
 	err = RPCClient.Call(&lastBlockStr, "eth_blockNumber")
 	if err != nil {
-		blockslogger.Errorf("Can't get latest block: %v", err)
+		logrus.Errorf("Can't get latest block: %v", err)
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "Can't get latest block: %v", err)
 	}
 
 	// translate from string (hex probably) to *big.Int
 	lastBlockNum := big.NewInt(0)
 	if _, ok := lastBlockNum.SetString(lastBlockStr, 0); !ok {
-		blockslogger.Errorf("Unable to parse last block string: %v", lastBlockStr)
+		logrus.Errorf("Unable to parse last block string: %v", lastBlockStr)
 		return nil, errors.BadRequestErrorf(errors.EthCallError, "Unable to parse last block string: %v", lastBlockStr)
 	}
 	return lastBlockNum, nil
