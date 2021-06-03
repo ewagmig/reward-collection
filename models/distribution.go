@@ -38,8 +38,8 @@ var (
 	}
 	//todo archNode candidates connection before online
 	archNodes = []string{
-		"47.243.52.187:8545",
-		"47.242.228.39:8545",
+		"http://47.243.52.187:8545",
+		"http://47.242.228.39:8545",
 	}
 )
 
@@ -280,15 +280,26 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, archNode string) (bool, error)  {
 	//1. dial the node to check the connection
 	logrus.Debugf("Enter send distribution phase with tx hash %s", txHash)
-	targetNodes := []string{}
-	targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
-	for _, v := range targetNodes{
-		rpcClient, err := rpc.Dial(v)
-		if err != nil{
-			logrus.Errorf("There is error when send distribution %v", err)
-		}
-		_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+	rpcClient, err := rpc.Dial(archNode)
+	if err != nil{
+		logrus.Errorf("There is error when send distribution %v", err)
+		return false, err
 	}
+	err1 := rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+	if err1 != nil{
+		logrus.Errorf("There is error when broadcasting %v", err1)
+		return false, err1
+	}
+	//targetNodes := []string{}
+	//targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
+
+	//for _, v := range targetNodes{
+	//	rpcClient, err := rpc.Dial(v)
+	//	if err != nil{
+	//		logrus.Errorf("There is error when send distribution %v", err)
+	//	}
+	//	_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+	//}
 
 	//wait 30s for on-chain
 	time.Sleep(30 * time.Second)
