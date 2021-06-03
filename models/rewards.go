@@ -518,11 +518,11 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 
 //syncEpoch background
 func SyncEpochBackground() {
-	//var (
-	//	ctx        = context.Background()
-	//)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	var (
+		ctx        = context.Background()
+	)
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 
 	logrus.Infof("Begin to sync Epoch background")
 	epIndex, err := ProcessEpoch(ctx)
@@ -534,12 +534,11 @@ func SyncEpochBackground() {
 
 //process Send background
 func ProcessSendBackground() {
-	//var (
-	//	ctx        = context.Background()
-	//)
+	var (
+		ctx        = context.TODO()
+	)
 	//ctx, cancel := context.WithCancel(context.Background())
 	//defer cancel()
-	ctx := context.TODO()
 	logrus.Infof("Begin to Process Send background")
 	err := ProcessSend(ctx)
 	if err != nil{
