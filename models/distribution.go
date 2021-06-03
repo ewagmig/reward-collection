@@ -284,6 +284,7 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 
 func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, archNode string) (bool, error)  {
 	//1. dial the node to check the connection
+	logrus.Debugf("Enter send distribution phase with tx hash %s", txHash)
 	targetNodes := []string{}
 	targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
 	for _, v := range targetNodes{
@@ -313,7 +314,7 @@ func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, ar
 		logrus.Errorf("There is error when Dial client %v", err)
 		return false, err
 	}
-	defer client.Close()
+	//defer client.Close()
 	receipt, err := client.TransactionReceipt(ctx, common.Hash(utils.HexToHash(txHash)))
 	if err != nil{
 		logrus.Errorf("There is error when getting transaction receipt %v", err)
@@ -437,16 +438,24 @@ func updateDisInDB(ctx context.Context, valD *ValDist) (int64, error) {
 
 //PumpDistInfo to pump the distribution info from database
 func PumpDistInfo(ctx context.Context, epStart, epEnd uint64, archiveNode string) (map[string]*big.Int, error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	valMapDist := make(map[string]*big.Int)
 	//get the vals at the end of this period
 	vals, err  := rpcCongressGetAllVals(epEnd, archiveNode)
 	if err != nil {
+		logrus.Errorf("There is error when get all validators")
 		return nil, err
 	}
 	for _, val := range vals{
-		valdis, err := fetchValToDisWithinEP(ctx,val,epStart,epEnd)
-		if err != nil {
-			return nil, err
+		valdis, err1 := fetchValToDisWithinEP(ctx,val,epStart,epEnd)
+		if err1 != nil {
+			logrus.Errorf("There is error when fetchValToDisWithinEP with validator %s", val)
+			return nil, err1
 		}
 		//filter the value of zero distribution
 		if valdis.Distribution.Cmp(big.NewInt(0)) == 0 {
@@ -500,6 +509,7 @@ func fetchValDist(ctx context.Context, valAddr string) (*ValDist, error) {
 
 //fetchValToDisWithinEP to fetch val epoch rewards during a epoch range
 func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd uint64) (*ValDist, error) {
+
 	rws := []Reward{}
 	valds := []*big.Int{}
 	eplist := []uint64{}
@@ -507,7 +517,7 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 		eplist = append(eplist, i)
 	}
 	deltaEP := epEnd - epStart + 1
-	logrus.Debugf("The deltaEP is %d and the eplist is %v", deltaEP, eplist)
+	logrus.Debugf("The deltaEP %d and the eplist %v with valAddr %s", deltaEP, eplist, valAddr)
 	MDB(ctx).Find(&rws).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false)
 	for _, rw := range rws{
 		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
@@ -529,7 +539,7 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 	//logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
-
+	logrus.Debugf("The validator %s with total distribution %v", valAddr, totald)
 	return &ValDist{
 		ValAddr: valAddr,
 		Distribution: totald,
