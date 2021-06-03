@@ -143,22 +143,23 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 
 
 //fetchRawTx
-func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, archiveNode string) (string, string, error) {
+func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, archiveNode string) (map[string]*big.Int,string, string, error) {
+	logrus.Infof("Beigin to fecth raw tx")
 	valmap, err := PumpDistInfo(ctx, epStart, epEnd, helper.ArchNode)
 	if err != nil {
 		logrus.Errorf("Fetch validator distribution error %v", err)
-		return "", "", err
+		return nil, "", "", err
 	}
 	if len(valmap) == 0 {
 		logrus.Errorf("Fetch validator distribution error %v", err)
-		return "", "", err
+		return nil, "", "", err
 	}
 
 	//get the gateway encrypted data
 	encData, err := signGateway(ctx, archiveNode, sysAddr, valmap)
 	if err != nil {
 		logrus.Errorf("Fetch enc data from gateway service error %v", err)
-		return "", "", err
+		return nil, "", "", err
 	}
 
 	validaReq := ValidatorReq{
@@ -169,15 +170,16 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 	rawTx, _ := ValidateEnc(validaReq, validatorUrl, validatorAccessKey)
 
 	if len(rawTx) == 0 {
-		return "", "", errors.BadRequestErrorf(errors.EthCallError, "The rawTx is empty")
+		return nil, "", "", errors.BadRequestErrorf(errors.EthCallError, "The rawTx is empty")
 	}
-	return rawTx, encData.Data.Extra.TxHash, nil
+	return valmap, rawTx, encData.Data.Extra.TxHash, nil
 }
 
 //PreSend to pump distribution from database, then take some check before sending
 func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, archiveNode string) (bool, error){
 	logrus.Infof("Enter preSend phase")
-	valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
+	//valmap, err := PumpDistInfo(ctx, epStart, epEnd, archiveNode)
+	valmap, rawTx, txHash, err := helper.fetchRawTx(ctx, epStart, epEnd, archiveNode)
 	if err != nil {
 		logrus.Errorf("Fetch validator distribution error %v", err)
 		return false, err
@@ -187,11 +189,10 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		return false, err
 	}
 
-	rawTx, txHash, err := helper.fetchRawTx(ctx, epStart, epEnd, archiveNode)
-	if err != nil {
-		logrus.Errorf("Error when fetching raw tx %v", err)
-		return false, err
-	}
+	//if err != nil {
+	//	logrus.Errorf("Error when fetching raw tx %v", err)
+	//	return false, err
+	//}
 
 	//fetch the pending nonce for sending transaction
 	nonce, err := fetchPendingNonce(ctx, archiveNode, sysAddr)
