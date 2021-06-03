@@ -160,7 +160,7 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 
 	//fetch the contract data
 	dataStr, amstr := getNotifyAmountData(valMapDist)
-
+	logrus.Infof("The value send to contract is %s", amstr)
 	//fetch toaddr nonce
 	nonce, err := fetchNonce(ctx, archNode, sysAddr)
 	if err != nil {

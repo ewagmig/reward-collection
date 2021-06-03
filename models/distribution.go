@@ -524,25 +524,18 @@ func fetchValToDisWithinEP(ctx context.Context, valAddr string, epStart, epEnd u
 	}
 	deltaEP := epEnd - epStart + 1
 	logrus.Debugf("The deltaEP %d and the eplist %v with valAddr %s", deltaEP, eplist, valAddr)
-	MDB(ctx).Find(&rws).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false)
-	for _, rw := range rws{
-		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
-		if ok{
-			valds = append(valds, rwbig)
+	rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+		//batch processing the results
+		for _, rw := range rws{
+			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+			if ok{
+				valds = append(valds, rwbig)
+			}
 		}
-	}
-	//rw := MDB(ctx).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
-	//	//batch processing the results
-	//	for _, rw := range rws{
-	//		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
-	//		if ok{
-	//			valds = append(valds, rwbig)
-	//		}
-	//	}
-	//	return nil
-	//})
-	//
-	//logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
+		return nil
+	})
+
+	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
 	logrus.Debugf("The validator %s with total distribution %v", valAddr, totald)
@@ -655,25 +648,25 @@ func fetchValToDisWithinEPUT(ctx context.Context, valAddr string, db *gorm.DB, e
 	deltaEP := epEnd - epStart + 1
 	logrus.Debugf("The deltaEP is %d and the eplist is %v", deltaEP, eplist)
 	//db.Order("epoch_index DESC").Where("distributed= ? and validator_addr = ?", 0, valAddr).First(&rw)
-	db.Find(&rws).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false)
-	for _, rw := range rws{
-		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
-		if ok{
-			valds = append(valds, rwbig)
-		}
-	}
-	//rw := db.Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
-	//	//batch processing the results
-	//	for _, rw := range rws{
-	//		rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
-	//		if ok{
-	//			valds = append(valds, rwbig)
-	//		}
+	//db.Find(&rws).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false)
+	//for _, rw := range rws{
+	//	rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+	//	if ok{
+	//		valds = append(valds, rwbig)
 	//	}
-	//	return nil
-	//})
-	//
-	//logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
+	//}
+	rw := db.Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valAddr, eplist, false).FindInBatches(&rws, int(deltaEP), func(tx *gorm.DB, batch int) error {
+		//batch processing the results
+		for _, rw := range rws{
+			rwbig, ok := new(big.Int).SetString(rw.Rewards, 10)
+			if ok{
+				valds = append(valds, rwbig)
+			}
+		}
+		return nil
+	})
+
+	logrus.Debugf("The rows affected should be %d", rw.RowsAffected)
 	//get the total distribution
 	totald := sum(valds)
 
