@@ -68,12 +68,8 @@ func init() {
 func main() {
 	defer func() {
 		exception := recover()
-
-		if err, ok := exception.(error); ok {
-			logrus.Errorf("unhandled error: %v", err)
+			logrus.Errorf("unhandled error: %v", exception.(error))
 			time.Sleep(time.Second * 3)
-			return
-		}
 	}()
 	// MemGuard
 	memguard.DisableUnixCoreDumps()
