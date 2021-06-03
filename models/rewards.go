@@ -521,7 +521,8 @@ func SyncEpochBackground() {
 	//var (
 	//	ctx        = context.Background()
 	//)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	logrus.Infof("Begin to sync Epoch background")
 	epIndex, err := ProcessEpoch(ctx)
@@ -536,7 +537,8 @@ func ProcessSendBackground() {
 	//var (
 	//	ctx        = context.Background()
 	//)
-	ctx := context.TODO()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	logrus.Infof("Begin to Process Send background")
 	err := ProcessSend(ctx)
 	if err != nil{
