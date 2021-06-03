@@ -537,8 +537,9 @@ func ProcessSendBackground() {
 	//var (
 	//	ctx        = context.Background()
 	//)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	ctx := context.TODO()
 	logrus.Infof("Begin to Process Send background")
 	err := ProcessSend(ctx)
 	if err != nil{
