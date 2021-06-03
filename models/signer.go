@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/sirupsen/logrus"
 	"github.com/starslabhq/rewards-collection/utils"
 	"io"
 	"io/ioutil"
@@ -133,6 +134,7 @@ func fetchNonce(ctx context.Context,archnode, addr string) (int, error) {
 func fetchPendingNonce(ctx context.Context,archnode, addr string) (int, error) {
 	client, err := ethclient.Dial(archnode)
 	if err != nil {
+		logrus.Errorf("There is dialing error %v", err)
 		return 0, err
 	}
 	defer client.Close()

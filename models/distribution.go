@@ -189,11 +189,6 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		return false, err
 	}
 
-	//if err != nil {
-	//	logrus.Errorf("Error when fetching raw tx %v", err)
-	//	return false, err
-	//}
-
 	//fetch the pending nonce for sending transaction
 	nonce, err := fetchPendingNonce(ctx, archiveNode, sysAddr)
 	if err != nil {
@@ -206,7 +201,6 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 		Nonce: int64(nonce),
 		ThisEpoch: int64(epStart),
 		LastEpoch: int64(epEnd),
-		//GasPrice: default40GWei,
 		TxHash: txHash,
 		Stat: RecordCreated,
 	}

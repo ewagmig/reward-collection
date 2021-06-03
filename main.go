@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -60,9 +61,20 @@ func init() {
 	}
 	kafkalog.AddConsoleOut(5)
 	kafkalog.AddField("app", "reward-collection")
+	//todo no need in prod
+	kafkalog.AddField("env_name", "test1")
 }
 
 func main() {
+	defer func() {
+		exception := recover()
+
+		if err, ok := exception.(error); ok {
+			logrus.Errorf("unhandled error: %v", err)
+			time.Sleep(time.Second * 3)
+			return
+		}
+	}()
 	// MemGuard
 	memguard.DisableUnixCoreDumps()
 	// Tell memguard to listen out for interrupts, and cleanup in case of one.
@@ -75,6 +87,8 @@ func main() {
 	defer memguard.DestroyAll()
 
 	mainCmd.AddCommand(cmdsvr.Cmd())
+
+
 
 	if mainCmd.Execute() != nil {
 		os.Exit(1)
