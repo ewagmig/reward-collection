@@ -430,12 +430,12 @@ func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 func updateDisInDB(ctx context.Context, valD *ValDist) (int64, error) {
 	rw := Reward{}
 	eplist := []int64{}
-	deltaEP := valD.LastEpoch - valD.ThisEpoch + 1
+	//deltaEP := valD.LastEpoch - valD.ThisEpoch + 1
 	for i := valD.ThisEpoch; i <= valD.LastEpoch; i ++ {
 		eplist = append(eplist, i)
 	}
-	db := MDB(ctx).Model(&rw).Where("validator_addr = ? and epoch_index IN ?", valD.ValAddr, eplist).Updates(map[string]interface{}{"distributed": true})
-	if db.RowsAffected != deltaEP || db.Error != nil {
+	db := MDB(ctx).Model(&rw).Where("validator_addr = ? and epoch_index IN ? and distributed = ?", valD.ValAddr, eplist, false).Updates(map[string]interface{}{"distributed": true})
+	if db.Error != nil {
 		logrus.Errorf("Update distribution in db error")
 		return 0, errors.BadRequestError(errors.DatabaseError, "Update distribution in db error")
 	}
@@ -694,4 +694,21 @@ func updateDisInDBUT(ctx context.Context, valD *ValDist, tx *gorm.DB) (int64, er
 		return 0, errors.BadRequestError(errors.DatabaseError, "Update distribution in db error")
 	}
 	return db.RowsAffected, nil
+}
+
+func updateSendRecUT(ctx context.Context, record *SendRecord, tx *gorm.DB) (error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	//tx := MDB(ctx).Begin()
+	//defer tx.Rollback()
+
+	if err := tx.Model(record).Update("stat", RecordSuccess).Where("raw_tx = ? and stat = ?", record.RawTx, RecordCreated).Error; err != nil {
+		logrus.Errorf("Update record error '%v'", err)
+		return processDBErr(err, "Failed to update record caused by error %v", err)
+	}
+	tx.Commit()
+	return nil
 }

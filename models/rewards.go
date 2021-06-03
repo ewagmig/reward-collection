@@ -182,9 +182,8 @@ func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
 	tx := MDB(ctx).Begin()
 	defer tx.Rollback()
 
-	if err := tx.Model(record).Update("stat", RecordSuccess).Where("raw_tx = ?", record.RawTx).Error; err != nil {
+	if err := tx.Model(record).Update("stat", RecordSuccess).Where("raw_tx = ? and stat = ?", record.RawTx, RecordCreated).Error; err != nil {
 		logrus.Errorf("Update record error '%v'", err)
-		tx.Rollback()
 		return processDBErr(err, "Failed to update record caused by error %v", err)
 	}
 	tx.Commit()
