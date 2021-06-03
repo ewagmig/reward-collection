@@ -490,15 +490,24 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		logrus.Debugf("There is no pending send record to update")
 		return laInfo.EpochIndex, nil
 	}
+	logrus.Debugf("The latest created send record is %v with txhash %s", sr, sr.TxHash)
 	client, err1 := ethclient.Dial(helper.ArchNode)
 	if err1 != nil {
 		return 0, err1
 	}
 	receipt, err2 := client.TransactionReceipt(context.Background(), common.Hash(utils.HexToHash(sr.TxHash)))
 	if err2 != nil {
+		//no broadcasting failed
+		err4 := UpdateSendRecordFailed(ctx, sr.TxHash)
+		if err4 != nil{
+			logrus.Errorf("update send record error %v", err4)
+			return 0, err4
+		}
+
 		return 0, err2
 	}
 	if receipt != nil{
+		//pending success
 		if receipt.Status == uint64(1){
 			err3 := UpdateSendRecord(ctx, sr.TxHash)
 			if err3 != nil{
@@ -506,6 +515,7 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 				return 0, err3
 			}
 		} else {
+		//pending failed
 			err4 := UpdateSendRecordFailed(ctx, sr.TxHash)
 			if err4 != nil{
 				logrus.Errorf("update send record error %v", err4)
