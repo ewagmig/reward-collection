@@ -61,8 +61,7 @@ func init() {
 	}
 	kafkalog.AddConsoleOut(5)
 	kafkalog.AddField("app", "reward-collection")
-	//todo no need in prod
-	kafkalog.AddField("env_name", "test1")
+	kafkalog.AddField("env_name", "prod")
 }
 
 func main() {

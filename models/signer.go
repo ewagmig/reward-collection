@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/utils"
 	"io"
 	"io/ioutil"
@@ -32,29 +33,21 @@ const (
 	headKeyHost          = "host"
 	iSO8601BasicFormat = "20060102T150405Z"
 	iSO8601BasicFormatShort = "20060102"
-)
-var lf = []byte{'\n'}
-
-// url query params
-const (
 	queryKeySignature        = "X-Amz-Signature"
 	queryKeyAlgorithm        = "X-Amz-Algorithm"
 	queryKeyCredential       = "X-Amz-Credential"
 	queryKeyDate             = "X-Amz-Date"
 	queryKeySignatureHeaders = "X-Amz-SignedHeaders"
-)
-
-const (
 	aws4HmacSha256Algorithm = "AWS4-HMAC-SHA256"
-)
-
-const (
-	AccessKey = "gateway"
-	SecretKey = "12345678"
 	AwsV4SigHeader = "signer.blockchain.amazonaws.com"
-	//todo ServiceUrl on line should be changed
-	GatewayServiceUrl = "https://172.18.23.38:21000/gateway/sign"
-	VotingContractProxyAddr = "0x7ce9a4f22fb3b3e2d91cc895bb082d7bd6f08525"
+)
+var lf = []byte{'\n'}
+
+var (
+	AccessKey = viper.GetString("gateway.accessKey")
+	SecretKey = viper.GetString("gateway.secretKey")
+	GatewayServiceUrl = viper.GetString("gateway.url")
+	VotingContractProxyAddr = viper.GetString("common.VotingContractProxyAddr")
 )
 
 // Key holds a set of Amazon Security Credentials.

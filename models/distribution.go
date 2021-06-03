@@ -23,20 +23,16 @@ import (
 )
 
 var (
-	//logrus = logging.MustGetLogger("rewards.distribution.models")
-	//logrus = logrus.New()
-	EPDuration = int64(3)
+	EPDuration = int64(viper.GetInt("common.EPDuration"))
 	//sysAddr should be provided by gateway service side
-	sysAddr = "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
-	//default40GWei = int64(40000000000)
+	sysAddr = viper.GetString("gateway.sysAddr")
 
-	//todo integration with validator
-	validatorUrl = "http://huobichain-dev-02.sinnet.huobiidc.com:5005/validate/cross/check"
+	validatorUrl = viper.GetString("validator.url")
 	validatorAccessKey = Key{
-		AccessKey: AccessKey,
-		SecretKey: SecretKey,
+		AccessKey: viper.GetString("validator.accessKey"),
+		SecretKey: viper.GetString("validator.secretKey"),
 	}
-	//todo archNode candidates connection before online
+
 	archNodes = []string{
 		"http://47.243.52.187:8545",
 		"http://47.242.228.39:8545",
