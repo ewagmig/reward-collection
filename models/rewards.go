@@ -172,39 +172,25 @@ func SaveSendRecord(ctx context.Context, record *SendRecord) error {
 	return nil
 }
 
-//todo update the record after resending
-func UpdateSendRecord(ctx context.Context, record *SendRecord) error {
-	select {
-	default:
-	case <-ctx.Done():
-		return ctx.Err()
+func UpdateSendRecord(ctx context.Context, txHash string) error {
+	rw := SendRecord{}
+	db := MDB(ctx).Model(&rw).Where("tx_hash = ? and stat = ?", txHash, RecordCreated).Updates(map[string]interface{}{"stat": RecordSuccess})
+	if db.Error != nil {
+		logrus.Errorf("Update send record in db error")
+		return errors.BadRequestError(errors.DatabaseError, "Update distribution in db error")
 	}
-	tx := MDB(ctx).Begin()
-	defer tx.Rollback()
-
-	if err := tx.Model(record).Update("stat", RecordSuccess).Where("raw_tx = ? and stat = ?", record.RawTx, RecordCreated).Error; err != nil {
-		logrus.Errorf("Update record error '%v'", err)
-		return processDBErr(err, "Failed to update record caused by error %v", err)
-	}
-	tx.Commit()
+	logrus.Debugf("The updated column in send record tables is %d", db.RowsAffected)
 	return nil
 }
 
-func UpdateSendRecordFailed(ctx context.Context, record *SendRecord) error {
-	select {
-	default:
-	case <-ctx.Done():
-		return ctx.Err()
+func UpdateSendRecordFailed(ctx context.Context, txHash string) error {
+	rw := SendRecord{}
+	db := MDB(ctx).Model(&rw).Where("tx_hash = ? and stat = ?", txHash, RecordCreated).Updates(map[string]interface{}{"stat": RecordFailed})
+	if db.Error != nil {
+		logrus.Errorf("Update send record in db error")
+		return errors.BadRequestError(errors.DatabaseError, "Update distribution in db error")
 	}
-	tx := MDB(ctx).Begin()
-	defer tx.Rollback()
-
-	if err := tx.Model(record).Update("stat", RecordFailed).Where("raw_tx = ?", record.RawTx).Error; err != nil {
-		logrus.Errorf("Update record error '%v'", err)
-		tx.Rollback()
-		return processDBErr(err, "Failed to update record caused by error %v", err)
-	}
-	tx.Commit()
+	logrus.Debugf("The updated column in send record tables is %d", db.RowsAffected)
 	return nil
 }
 

@@ -112,6 +112,7 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 			sendBool, err2 := helper.SendDistribution(ctx, helper.RawTx, helper.TxHash, helper.ArchNode)
 			if err2 != nil {
 				logrus.Errorf("Send Distribution error %v", err2)
+				return err2
 			}
 			//send check success
 			if sendBool{
@@ -127,6 +128,7 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 				}
 				sr := &SendRecord{
 					RawTx: helper.RawTx,
+					TxHash: helper.TxHash,
 				}
 				//update the database when successful
 				err3 := PostSend(ctx, vals, sr)
@@ -416,7 +418,7 @@ func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 
 	//when the Send bool is true, update the status to success
 	//var sr *SendRecord
-	err := UpdateSendRecord(ctx, sr)
+	err := UpdateSendRecord(ctx, sr.TxHash)
 	if err != nil {
 		logrus.Errorf("Updating the send record table failed")
 	}
