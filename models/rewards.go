@@ -118,6 +118,7 @@ func (helper *blockHelper)SaveVals(ctx context.Context, epochIndex uint64) error
 	vals, err := calcuDistInEpoch(epochIndex, rewards, helper.ArchNode)
 	if err != nil{
 		logrus.Errorf("Calculate rewards error '%v'", err)
+		return err
 	}
 
 	logrus.Infof("[Epoch Index %d ] Start to store reward data for validators", epochIndex)

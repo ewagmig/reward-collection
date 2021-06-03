@@ -389,7 +389,7 @@ func jsonrpcEthCallGetValInfo(archNode, blkNumHex string, poolId uint64) (*Valid
 
 	//use the json_rpc api, e.g.{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x000000000000000000000000000000000000f000", "data":"0x8a11d7c9000000000000000000000000086119bd018ed4940e7427b9373c014f7b754ad5"}, "latest"],"id":1}
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := "0x7Ce9A4f22FB3B3e2d91cC895bb082d7BD6F08525"
+	validatorContractAddr := VotingContractProxyAddr
 	//fn getPoolWithStatus signature in smart contract
 	getValInfoPrefix := "0x22fe6c24"
 
@@ -426,7 +426,7 @@ func jsonrpcEthCallGetActVals(archNode, blkNumHex string) (uint64, error) {
 	client := jsonrpc.NewClient(archNode)
 
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := "0x7Ce9A4f22FB3B3e2d91cC895bb082d7BD6F08525"
+	validatorContractAddr := VotingContractProxyAddr
 	//fn getPoolLength() signature in smart contract
 	getValsPrefix := "0xb3944d52"
 

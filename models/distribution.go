@@ -75,7 +75,6 @@ func newSendHelper() *sendHelper {
 
 	return &sendHelper{
 		ArchNode: archNode,
-		//GasPrice: default40GWei,
 	}
 }
 
@@ -241,6 +240,7 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 
 	payloadBytes, err := json.Marshal(&encData)
 	if err != nil {
+		logrus.Errorf("validator decrytion error %v", err)
 		return
 	}
 	body := bytes.NewReader(payloadBytes)
@@ -262,12 +262,14 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 	//unmarshall the response body
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		logrus.Errorf("Read the response error %v", err)
 		return "", false
 	}
 
 	var DecData ValidatorResp
 	err = json.Unmarshal(respBody, &DecData)
 	if err != nil {
+		logrus.Errorf("json unmarshal the dec data error %v", err)
 		return "", false
 	}
 
@@ -288,16 +290,6 @@ func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, ar
 		logrus.Errorf("There is error when broadcasting %v", err1)
 		return false, err1
 	}
-	//targetNodes := []string{}
-	//targetNodes = append(targetNodes, archNode, archNodes[0], archNodes[1])
-
-	//for _, v := range targetNodes{
-	//	rpcClient, err := rpc.Dial(v)
-	//	if err != nil{
-	//		logrus.Errorf("There is error when send distribution %v", err)
-	//	}
-	//	_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
-	//}
 
 	//wait 30s for on-chain
 	time.Sleep(30 * time.Second)
@@ -305,6 +297,7 @@ func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, ar
 	nonceAt, err := fetchNonce(ctx, archNode, sysAddr)
 	if err != nil {
 		logrus.Errorf("Fecth nonceAt error %v", err)
+		return false, err
 	}
 	//nonceDB
 	var sr SendRecord
@@ -346,6 +339,7 @@ func (helper *sendHelper)ResendRawTx(rawTx string) (bool, error)  {
 	client, _ := rpc.Dial(archNode)
 	err := client.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
 	if err != nil{
+		logrus.Errorf("Resend helper error %v", err)
 		return false, err
 	}
 
@@ -417,6 +411,7 @@ func PostSend(ctx context.Context, vals []*ValDist, sr *SendRecord) error {
 	err := UpdateSendRecord(ctx, sr.TxHash)
 	if err != nil {
 		logrus.Errorf("Updating the send record table failed")
+		return err
 	}
 
 	logrus.Infof("Sending from %d to %d finished", vals[0].ThisEpoch, vals[0].LastEpoch)

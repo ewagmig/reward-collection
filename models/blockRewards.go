@@ -12,15 +12,6 @@ import (
 	"time"
 )
 
-//var logrus = logging.MustGetLogger("blocks.scraper.models")
-//var logrus = logrus.New()
-
-/*
-eth.getBlockByNumber:transactions, iterate transactions[],
-to eth.getTransaction:gasPrice. to eth.getTransactionReceipt:gasUsed,
-multiple(gasPrice, gasUsed), sum all
-*/
-
 var (
 	Client *ethclient.Client
 )
@@ -117,6 +108,7 @@ func ScramChainInfo(archNode string) *BlockchainInfo {
 	logrus.Infof("The latest block numer is: %v", lastBlockNum)
 	if err != nil{
 		logrus.Errorf("Get latest block error: %v", err)
+		return nil
 	}
 
 	//get mod of the lastBlockNum % EP > 10 to prevent `reorg` issue
@@ -128,6 +120,7 @@ func ScramChainInfo(archNode string) *BlockchainInfo {
 		lastBlockNum, err = getBlockNumber(archNode)
 		if err != nil{
 			logrus.Errorf("Get latest block error: %v", err)
+			return nil
 		}
 		del.Mod(lastBlockNum, big.NewInt(int64(EP)))
 		if del.Cmp(big.NewInt(int64(10))) == -1 {
@@ -232,6 +225,7 @@ func getBlockFeesByBatch(archNode string, blockNumber *big.Int) (*big.Int, error
 func getBlockNumber(archNode string) (*big.Int, error) {
 	RPCClient, err:= rpc.Dial(archNode)
 	if err != nil {
+	logrus.Errorf("getBlockNumber with error %v", err)
 	return nil, errors.BadRequestErrorf(errors.EthCallError, "RPC Dial node error: %v", err)
 	}
 	defer RPCClient.Close()
