@@ -2,9 +2,12 @@ package models
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
+	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/gorm"
 	"math/big"
 	"sync"
@@ -480,24 +483,36 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		}
 	}
 
-	//todo to be abandond here !
-	//sr := &SendRecord{}
-	//MDB(ctx).First(&sr).Where("stat = ?", RecordCreated)
-	//client, err1 := ethclient.Dial(helper.ArchNode)
-	//if err1 != nil {
-	//	return 0, err1
-	//}
-	//receipt, err2 := client.TransactionReceipt(context.BackGround(), common.Hash(utils.HexToHash(sr.TxHash)))
-	//if err2 != nil {
-	//	return 0, err2
-	//}
-	//if receipt != nil{
-	//	if receipt.Status == uint64(1){
-	//		UpdateSendRecord(ctx, sr)
-	//	} else {
-	//		UpdateSendRecordFailed(ctx, sr)
-	//	}
-	//}
+	//check the last send record
+	sr := &SendRecord{}
+	MDB(ctx).First(&sr).Where("stat = ?", RecordCreated)
+	if sr == nil {
+		logrus.Debugf("There is no pending send record to update")
+		return laInfo.EpochIndex, nil
+	}
+	client, err1 := ethclient.Dial(helper.ArchNode)
+	if err1 != nil {
+		return 0, err1
+	}
+	receipt, err2 := client.TransactionReceipt(context.Background(), common.Hash(utils.HexToHash(sr.TxHash)))
+	if err2 != nil {
+		return 0, err2
+	}
+	if receipt != nil{
+		if receipt.Status == uint64(1){
+			err3 := UpdateSendRecord(ctx, sr.TxHash)
+			if err3 != nil{
+				logrus.Errorf("update send record error %v", err3)
+				return 0, err3
+			}
+		} else {
+			err4 := UpdateSendRecordFailed(ctx, sr.TxHash)
+			if err4 != nil{
+				logrus.Errorf("update send record error %v", err4)
+				return 0, err4
+			}
+		}
+	}
 
 	return laInfo.EpochIndex, nil
 }
