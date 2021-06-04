@@ -493,7 +493,8 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 	logrus.Debugf("The latest created send record is %v with txhash %s", sr, sr.TxHash)
 	client, err1 := ethclient.Dial(helper.ArchNode)
 	if err1 != nil {
-		return laInfo.EpochIndex, err1
+		logrus.Errorf("Eth client dial error %v", err1)
+		return laInfo.EpochIndex, nil
 	}
 	receipt, err2 := client.TransactionReceipt(context.Background(), common.Hash(utils.HexToHash(sr.TxHash)))
 	if err2 != nil {
@@ -501,10 +502,10 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 		err4 := UpdateSendRecordFailed(ctx, sr.TxHash)
 		if err4 != nil{
 			logrus.Errorf("update send record error %v", err4)
-			return laInfo.EpochIndex, err4
+			return laInfo.EpochIndex, nil
 		}
-
-		return laInfo.EpochIndex, err2
+		logrus.Errorf("Get transaction receipt error %v", err2)
+		return laInfo.EpochIndex, nil
 	}
 	if receipt != nil{
 		//pending success
@@ -512,14 +513,14 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 			err3 := UpdateSendRecord(ctx, sr.TxHash)
 			if err3 != nil{
 				logrus.Errorf("update send record error %v", err3)
-				return laInfo.EpochIndex, err3
+				return laInfo.EpochIndex, nil
 			}
 		} else {
 		//pending failed
 			err4 := UpdateSendRecordFailed(ctx, sr.TxHash)
 			if err4 != nil{
 				logrus.Errorf("update send record error %v", err4)
-				return laInfo.EpochIndex, err4
+				return laInfo.EpochIndex, nil
 			}
 		}
 	}
