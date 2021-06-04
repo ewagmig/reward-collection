@@ -80,12 +80,13 @@ func (rc *rewardsCol) Routes() []*server.Router {
 
 func (rc *rewardsCol) getRewards(ctx *gin.Context)  {
 	req := &models.CallParams{
-		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
 	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
+
+	req.ArchiveNode = viper.GetString("server.archiveNodeUrl")
 
 	resp, err := models.GetRewards(req)
 	if err != nil {
@@ -98,13 +99,13 @@ func (rc *rewardsCol) getRewards(ctx *gin.Context)  {
 
 func (rc *rewardsCol) setStartEpoch(ctx *gin.Context)  {
 	req := &models.CallParams{
-		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
 	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
 
+	req.ArchiveNode = viper.GetString("server.archiveNodeUrl")
 	resp, err := models.SetStartEpoch(ctx, req.ArchiveNode, req.EpochIndex)
 	if err != nil {
 		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
@@ -116,13 +117,13 @@ func (rc *rewardsCol) setStartEpoch(ctx *gin.Context)  {
 
 func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
 	req := &models.CallParams{
-		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
 	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
 
+	req.ArchiveNode = viper.GetString("server.archiveNodeUrl")
 	resp := models.ScramChainInfo(req.ArchiveNode)
 
 	ctx.JSON(http.StatusOK, resp)
@@ -130,13 +131,13 @@ func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
 
 func (rc *rewardsCol) pumpInfo(ctx *gin.Context)  {
 	req := &models.CallParams{
-		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
 	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
 
+	req.ArchiveNode = viper.GetString("server.archiveNodeUrl")
 	resp, err := models.PumpDistInfo(ctx, req.ThisEpoch, req.LastEpoch, req.ArchiveNode)
 	if err != nil {
 		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
@@ -148,13 +149,12 @@ func (rc *rewardsCol) pumpInfo(ctx *gin.Context)  {
 
 func (rc *rewardsCol) GetPoolsInfo(ctx *gin.Context)  {
 	req := &models.CallParams{
-		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
 	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
-
+	req.ArchiveNode = viper.GetString("server.archiveNodeUrl")
 	resp, err := models.FecthPoolLenInfo(req.EpochIndex, req.ArchiveNode)
 	if err != nil {
 		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
@@ -166,13 +166,13 @@ func (rc *rewardsCol) GetPoolsInfo(ctx *gin.Context)  {
 
 func (rc *rewardsCol) GetDistEpoch(ctx *gin.Context)  {
 	req := &models.CallParams{
-		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
 	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
 	}
 
+	req.ArchiveNode = viper.GetString("server.archiveNodeUrl")
 	resp, err := models.GetDistributionPerEpoch(req.ArchiveNode, req.EpochIndex)
 	if err != nil {
 		errors.BadRequestError(errors.IDNotFound, err.Error()).Write(ctx)
