@@ -149,6 +149,7 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 		logrus.Errorf("Fetch enc data from gateway service error %v", err)
 		return nil, "", "", err
 	}
+	logrus.Debugf("The enc data is %v", encData.Data.EncryptData)
 
 	validaReq := ValidatorReq{
 		EncryptData: encData.Data.EncryptData,
@@ -250,7 +251,7 @@ func ValidateEnc(encData ValidatorReq, targetUrl string, accessKey Key) (rawTx s
 	//Post the response
 	resp, err := myclient.Do(req1)
 	if err != nil {
-		logrus.Errorf("Validator service check failed")
+		logrus.Errorf("Validator service check failed with error %v", err)
 		return "", false
 	}
 	defer resp.Body.Close()
