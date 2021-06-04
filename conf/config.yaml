@@ -76,5 +76,5 @@ validator:
 
 #common config
 common:
-  EPDuration: 3
-  VotingContractProxyAddr: "0x6636Cc488964AA2E9F2644248601B2909eCC394E"
+  epDuration: 3
+  votingContractProxyAddr: "0x6636Cc488964AA2E9F2644248601B2909eCC394E"

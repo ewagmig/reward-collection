@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	EPDuration = int64(viper.GetInt("common.EPDuration"))
+	EPDuration = int64(viper.GetInt("common.epDuration"))
 	//sysAddr should be provided by gateway service side
 	sysAddr = viper.GetString("gateway.sysAddr")
 

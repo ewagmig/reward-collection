@@ -47,7 +47,6 @@ var (
 	AccessKey = viper.GetString("gateway.accessKey")
 	SecretKey = viper.GetString("gateway.secretKey")
 	GatewayServiceUrl = viper.GetString("gateway.url")
-	VotingContractProxyAddr = viper.GetString("common.VotingContractProxyAddr")
 )
 
 // Key holds a set of Amazon Security Credentials.
@@ -161,7 +160,7 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 	}
 
 	//feePrice := strconv.FormatInt(gasPrice,10)
-	contractAddr := viper.GetString("common.VotingContractProxyAddr")
+	contractAddr := viper.GetString("common.votingContractProxyAddr")
 	//assemble the data field for sending transaction
 	reqData := &ReqData{
 		To: contractAddr,
