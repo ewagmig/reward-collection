@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
 	_ "github.com/go-sql-driver/mysql" // inject mysql driver to go sql
 	"github.com/starslabhq/rewards-collection/utils"
 	"gorm.io/driver/mysql"
@@ -328,17 +327,17 @@ func TestCalcu(t *testing.T) {
 	t.Log(val)
 }
 
-func TestSignGateway(t *testing.T) {
-	valMapDist := make(map[string]*big.Int)
-	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
-	dataStr, amstr := getNotifyAmountData(valMapDist)
-	t.Log("The data string is", dataStr)
-	t.Log("The amount string is", amstr)
-
-	archNode := "https://http-testnet.hecochain.com"
-	//sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
-	signGateway(context.Background(),archNode, sysAddr, valMapDist)
-}
+//func TestSignGateway(t *testing.T) {
+//	valMapDist := make(map[string]*big.Int)
+//	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
+//	dataStr, amstr := getNotifyAmountData(valMapDist)
+//	t.Log("The data string is", dataStr)
+//	t.Log("The amount string is", amstr)
+//
+//	archNode := "https://http-testnet.hecochain.com"
+//	//sysAddr := "0xe2cdcf16d70084ac2a9ce3323c5ad3fa44cddbda"
+//	signGateway(context.Background(),archNode, sysAddr, valMapDist)
+//}
 
 func TestCalcUT(t *testing.T) {
 	var bigSort sortutil.BigIntSlice
@@ -395,39 +394,39 @@ func TestDecodeData(t *testing.T) {
 
 }
 
-func TestValidator(t *testing.T) {
-	valMapDist := make(map[string]*big.Int)
-	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
-	archNode := "https://http-testnet.hecochain.com"
-
-	encResp, err := signGateway(context.Background(), archNode, sysAddr, valMapDist)
-	if err != nil {
-		t.Error(err)
-	}
-
-	encData := encResp.Data.EncryptData
-	t.Log("The enc signed tx is", encData)
-
-	targetUrl := "http://huobichain-dev-02.sinnet.huobiidc.com:5005/validate/cross/check"
-	accKey := Key{
-		AccessKey: AccessKey,
-		SecretKey: SecretKey,
-	}
-
-	validaReq := ValidatorReq{
-		EncryptData: encResp.Data.EncryptData,
-		Cipher: encResp.Data.Extra.Cipher,
-	}
-
-	rawTx, ok := ValidateEnc(validaReq, targetUrl, accKey)
-
-	t.Log("The raw tx is", rawTx)
-	t.Log("The Ok status is", ok)
-
-	rpcClient, _ := rpc.Dial(archNode)
-	_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
-
-}
+//func TestValidator(t *testing.T) {
+//	valMapDist := make(map[string]*big.Int)
+//	valMapDist["000000000000000000000000532f39e49dc1a7f154a1d08ad6eaba6b0aa49a16"] = big.NewInt(643498595238095)
+//	archNode := "https://http-testnet.hecochain.com"
+//
+//	encResp, err := signGateway(context.Background(), archNode, sysAddr, valMapDist)
+//	if err != nil {
+//		t.Error(err)
+//	}
+//
+//	encData := encResp.Data.EncryptData
+//	t.Log("The enc signed tx is", encData)
+//
+//	targetUrl := "http://huobichain-dev-02.sinnet.huobiidc.com:5005/validate/cross/check"
+//	accKey := Key{
+//		AccessKey: AccessKey,
+//		SecretKey: SecretKey,
+//	}
+//
+//	validaReq := ValidatorReq{
+//		EncryptData: encResp.Data.EncryptData,
+//		Cipher: encResp.Data.Extra.Cipher,
+//	}
+//
+//	rawTx, ok := ValidateEnc(validaReq, targetUrl, accKey)
+//
+//	t.Log("The raw tx is", rawTx)
+//	t.Log("The Ok status is", ok)
+//
+//	rpcClient, _ := rpc.Dial(archNode)
+//	_ = rpcClient.CallContext(context.Background(),nil,"eth_sendRawTransaction", rawTx)
+//
+//}
 
 func TestGetRewardsInEPs(t *testing.T) {
 	rs := []string{"3455121063333332", "3455121063333332", "4442298509999998", "4442298509999998", "4442298509999998", "4442298509999998", "5429475956666664", "8391008296666662", "23198669996666652", "4442298509999998", "2467943616666666", "2726113765714285", "2726113765714285", "5149326001904761", "14236371887619046", "2120310706666666", "2120310706666666", "2726113765714285", "2726113765714285", "2726113765714285", "3331916824761904", "1514507647619047", "2025642211666666", "2604397129285713", "2604397129285713", "3183152046904760", "2025642211666666", "2604397129285713", "2604397129285713", "2604397129285713", "4919416799761901", "13600740564047606", "1446887294047619"}

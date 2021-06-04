@@ -23,16 +23,6 @@ import (
 )
 
 var (
-	EPDuration = int64(viper.GetInt("common.epDuration"))
-	//sysAddr should be provided by gateway service side
-	sysAddr = viper.GetString("gateway.sysAddr")
-
-	validatorUrl = viper.GetString("validator.url")
-	validatorAccessKey = Key{
-		AccessKey: viper.GetString("validator.accessKey"),
-		SecretKey: viper.GetString("validator.secretKey"),
-	}
-
 	archNodes = []string{
 		"http://47.243.52.187:8545",
 		"http://47.242.228.39:8545",
@@ -94,7 +84,7 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 	//fetch the latest epoch info in db
 	ep := &Epoch{}
 	MDB(ctx).Order("epoch_index DESC").First(&ep)
-
+	EPDuration := viper.GetInt("common.epDuration")
 	//laInfo := ScramChainInfo(helper.ArchNode)
 	epEnd := uint64(ep.EpochIndex)
 	epStart := epEnd - uint64(EPDuration) + 1
@@ -153,6 +143,7 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 	}
 
 	//get the gateway encrypted data
+	sysAddr := viper.GetString("gateway.sysAddr")
 	encData, err := signGateway(ctx, archiveNode, sysAddr, valmap)
 	if err != nil {
 		logrus.Errorf("Fetch enc data from gateway service error %v", err)
@@ -163,7 +154,11 @@ func (helper *sendHelper)fetchRawTx(ctx context.Context, epStart, epEnd uint64, 
 		EncryptData: encData.Data.EncryptData,
 		Cipher: encData.Data.Extra.Cipher,
 	}
-
+	validatorUrl := viper.GetString("validator.url")
+	validatorAccessKey := Key{
+		AccessKey: viper.GetString("validator.accessKey"),
+		SecretKey: viper.GetString("validator.secretKey"),
+	}
 	rawTx, _ := ValidateEnc(validaReq, validatorUrl, validatorAccessKey)
 
 	if len(rawTx) == 0 {
@@ -187,6 +182,7 @@ func (helper *sendHelper)PreSend(ctx context.Context, epStart, epEnd uint64, arc
 	}
 
 	//fetch the pending nonce for sending transaction
+	sysAddr := viper.GetString("gateway.sysAddr")
 	nonce, err := fetchPendingNonce(ctx, archiveNode, sysAddr)
 	if err != nil {
 		logrus.Errorf("Get nonce error %v", err)
@@ -294,6 +290,7 @@ func (helper *sendHelper)SendDistribution(ctx context.Context, rawTx, txHash, ar
 	//wait 30s for on-chain
 	time.Sleep(30 * time.Second)
 	//get the nonce after time waiting
+	sysAddr := viper.GetString("gateway.sysAddr")
 	nonceAt, err := fetchNonce(ctx, archNode, sysAddr)
 	if err != nil {
 		logrus.Errorf("Fecth nonceAt error %v", err)

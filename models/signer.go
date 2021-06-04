@@ -43,11 +43,7 @@ const (
 )
 var lf = []byte{'\n'}
 
-var (
-	AccessKey = viper.GetString("gateway.accessKey")
-	SecretKey = viper.GetString("gateway.secretKey")
-	GatewayServiceUrl = viper.GetString("gateway.url")
-)
+
 
 // Key holds a set of Amazon Security Credentials.
 type Key struct {
@@ -148,7 +144,7 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 	myclient := &http.Client{Transport: tr, Timeout: 123 * time.Second}
 
 	//testing url
-	Url := GatewayServiceUrl
+	Url := viper.GetString("gateway.url")
 
 	//fetch the contract data
 	dataStr, amstr := getNotifyAmountData(valMapDist)
@@ -213,8 +209,8 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 	req1.Header.Set("content-type", "application/json")
 	req1.Header.Set("Host", "signer.blockchain.amazonaws.com")
 	key := &Key{
-		AccessKey: AccessKey,
-		SecretKey: SecretKey,
+		AccessKey: viper.GetString("gateway.accessKey"),
+		SecretKey: viper.GetString("gateway.secretKey"),
 	}
 
 	req1.Host = AwsV4SigHeader
