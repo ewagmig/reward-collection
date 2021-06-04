@@ -161,7 +161,7 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 	}
 
 	//feePrice := strconv.FormatInt(gasPrice,10)
-	contractAddr := VotingContractProxyAddr
+	contractAddr := viper.GetString("common.VotingContractProxyAddr")
 	//assemble the data field for sending transaction
 	reqData := &ReqData{
 		To: contractAddr,

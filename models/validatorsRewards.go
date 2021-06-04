@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/utils"
 	"github.com/ybbus/jsonrpc"
@@ -391,7 +392,7 @@ func jsonrpcEthCallGetValInfo(archNode, blkNumHex string, poolId uint64) (*Valid
 
 	//use the json_rpc api, e.g.{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x000000000000000000000000000000000000f000", "data":"0x8a11d7c9000000000000000000000000086119bd018ed4940e7427b9373c014f7b754ad5"}, "latest"],"id":1}
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := VotingContractProxyAddr
+	validatorContractAddr := viper.GetString("common.VotingContractProxyAddr")
 	//fn getPoolWithStatus signature in smart contract
 	getValInfoPrefix := "0x22fe6c24"
 
@@ -428,7 +429,7 @@ func jsonrpcEthCallGetActVals(archNode, blkNumHex string) (uint64, error) {
 	client := jsonrpc.NewClient(archNode)
 
 	//to assemble the data string structure with fn prefix, addr with left padding
-	validatorContractAddr := VotingContractProxyAddr
+	validatorContractAddr := viper.GetString("common.VotingContractProxyAddr")
 	//fn getPoolLength() signature in smart contract
 	getValsPrefix := "0xb3944d52"
 
