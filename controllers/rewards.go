@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
 	"github.com/starslabhq/rewards-collection/models"
 	"github.com/starslabhq/rewards-collection/server"
@@ -78,7 +79,9 @@ func (rc *rewardsCol) Routes() []*server.Router {
 }
 
 func (rc *rewardsCol) getRewards(ctx *gin.Context)  {
-	req := &models.CallParams{}
+	req := &models.CallParams{
+		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
+	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
@@ -94,7 +97,9 @@ func (rc *rewardsCol) getRewards(ctx *gin.Context)  {
 }
 
 func (rc *rewardsCol) setStartEpoch(ctx *gin.Context)  {
-	req := &models.CallParams{}
+	req := &models.CallParams{
+		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
+	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
@@ -110,7 +115,9 @@ func (rc *rewardsCol) setStartEpoch(ctx *gin.Context)  {
 }
 
 func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
-	req := &models.CallParams{}
+	req := &models.CallParams{
+		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
+	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
@@ -122,7 +129,9 @@ func (rc *rewardsCol) getEpochInfo(ctx *gin.Context)  {
 }
 
 func (rc *rewardsCol) pumpInfo(ctx *gin.Context)  {
-	req := &models.CallParams{}
+	req := &models.CallParams{
+		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
+	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
@@ -138,7 +147,9 @@ func (rc *rewardsCol) pumpInfo(ctx *gin.Context)  {
 }
 
 func (rc *rewardsCol) GetPoolsInfo(ctx *gin.Context)  {
-	req := &models.CallParams{}
+	req := &models.CallParams{
+		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
+	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
@@ -154,7 +165,9 @@ func (rc *rewardsCol) GetPoolsInfo(ctx *gin.Context)  {
 }
 
 func (rc *rewardsCol) GetDistEpoch(ctx *gin.Context)  {
-	req := &models.CallParams{}
+	req := &models.CallParams{
+		ArchiveNode: viper.GetString("server.archiveNodeUrl"),
+	}
 	if err := utils.GetJSONBody(ctx, req); err != nil {
 		errors.BadRequestError(errors.InvalidJSONBody, err.Error()).Write(ctx)
 		return
