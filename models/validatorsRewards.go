@@ -264,7 +264,7 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 			}
 
 			//same vals with lower Pid
-			sameNums := 11 - len(ActCoinsArray_exc)
+			sameNums := actNum - len(ActCoinsArray_exc)
 			SameAct := kSort[:sameNums]
 			for _, v := range SameAct{
 				actValSet = append(actValSet, pidMapVal[v.Uint64()])
