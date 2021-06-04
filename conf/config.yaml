@@ -43,8 +43,9 @@ database:
 
 #rewards collection connect server by docker server
 server:
-  archiveNodeUrl: "http://47.243.52.187:8545"
-  archiveNode1Url: "http://47.242.228.39:8545"
+  archiveNodeUrl: "http://172.26.21.201:8545"
+  archiveNode1Url: "http://47.243.52.187:8545"
+  archiveNode2Url: "http://47.242.228.39:8545"
 
 #log for mainnet info
 log:
@@ -61,7 +62,7 @@ log:
 
 #signer gateway
 gateway:
-  sysAddr: ""
+  sysAddr: "0x4188d0da3a993f77bbbb57e15c16dccf035c1ef8"
   accessKey: "gateway.defi"
   secretKey: "k4bugMLxrotg2eAY"
   url: "https://192.168.28.13:9000/gateway/sign"
@@ -75,5 +76,5 @@ validator:
 
 #common config
 common:
-  EPDuration: 36
-  VotingContractProxyAddr: "0x80d1769ac6fee59BE5AAC1952a90270bbd2Ceb2F"
+  EPDuration: 3
+  VotingContractProxyAddr: "0x6636Cc488964AA2E9F2644248601B2909eCC394E"

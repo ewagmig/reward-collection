@@ -38,13 +38,16 @@ database:
   postgres:
     connection: 'postgres://postgres:baas1234_@localhost/baas?sslmode=disable'
   mysql:
-    connection: 'root:12345678@tcp(huobichain-dev-02.sinnet.huobiidc.com:3306)/heco_test?charset=utf8&parseTime=True&loc=Local'
+    connection: 'heco_mainnet_usrc:v9uB_gTm0zQmBQST@tcp(master-3413.huobiidc.com:3413)/heco_mainnet?charset=utf8&parseTime=True&loc=Local'
 
 
 #rewards collection connect server by docker server
 server:
-  archiveNodeUrl: "http://82.156.163.203:8545"
+  archiveNodeUrl: "http://172.26.21.201:8545"
+  archiveNode1Url: "http://47.243.52.187:8545"
+  archiveNode2Url: "http://47.242.228.39:8545"
 
+#log for mainnet info
 log:
   kafka:
     servers:
@@ -54,5 +57,24 @@ log:
       - kafka-04.sinnet.huobiidc.com:9092,
       - kafka-05.sinnet.huobiidc.com:9092,
       - kafka-06.sinnet.huobiidc.com:9092
-  level: 4
+  level: 5
   topic: "applog-heco"
+
+#signer gateway
+gateway:
+  sysAddr: "0x4188d0da3a993f77bbbb57e15c16dccf035c1ef8"
+  accessKey: "gateway.defi"
+  secretKey: "k4bugMLxrotg2eAY"
+  url: "https://192.168.28.13:9000/gateway/sign"
+
+
+#validator
+validator:
+  accessKey: "validatorUHEH9B"
+  secretKey: "bbaed91482fa1299b6a888e30"
+  url: "http://blockchain-validator-1-1c-1.aws-jp1.huobiidc.com:4014/validate/cross/check"
+
+#common config
+common:
+  EPDuration: 3
+  VotingContractProxyAddr: "0x6636Cc488964AA2E9F2644248601B2909eCC394E"
