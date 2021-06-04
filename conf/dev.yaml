@@ -43,8 +43,8 @@ database:
 
 #rewards collection connect server by docker server
 server:
-  archiveNodeUrl: "http://47.243.52.187:8545"
-  archiveNode1Url: "http://172.26.21.201:8545"
+  archiveNodeUrl: "http://172.26.21.201:8545"
+  archiveNode1Url: "http://47.243.52.187:8545"
   archiveNode2Url: "http://47.242.228.39:8545"
 
 #log for mainnet info

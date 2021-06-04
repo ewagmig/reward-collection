@@ -447,7 +447,7 @@ func PumpDistInfo(ctx context.Context, epStart, epEnd uint64, archiveNode string
 	//get the vals at the end of this period
 	vals, err  := rpcCongressGetAllVals(epEnd, archiveNode)
 	if err != nil {
-		logrus.Errorf("There is error when get all validators")
+		logrus.Errorf("There is error when get all validators %v", err)
 		return nil, err
 	}
 	for _, val := range vals{

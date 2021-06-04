@@ -427,9 +427,10 @@ func jsonrpcEthCallGetValInfo(archNode, blkNumHex string, poolId uint64) (*Valid
 func jsonrpcEthCallGetActVals(archNode, blkNumHex string) (uint64, error) {
 	//init a new json rpc client
 	client := jsonrpc.NewClient(archNode)
-
+	logrus.Debugf("Begin to get all validators with end number %s", blkNumHex)
 	//to assemble the data string structure with fn prefix, addr with left padding
 	validatorContractAddr := viper.GetString("common.votingContractProxyAddr")
+	logrus.Debugf("The contract addr is %s", validatorContractAddr)
 	//fn getPoolLength() signature in smart contract
 	getValsPrefix := "0xb3944d52"
 
@@ -443,11 +444,13 @@ func jsonrpcEthCallGetActVals(archNode, blkNumHex string) (uint64, error) {
 
 	vals, err := resp.GetString()
 	if err != nil {
+		logrus.Errorf("There is error when parsing %v", err)
 		return 0,errors.BadRequestError(errors.EthCallError, err)
 	}
 
 	vals_num, err := splitVals(vals)
 	if err != nil {
+		logrus.Errorf("There is error when parsing %v", err)
 		return 0,errors.BadRequestError(errors.EthCallError, err)
 	}
 
