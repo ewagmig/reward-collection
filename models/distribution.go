@@ -91,6 +91,10 @@ func (helper *sendHelper) DoSend(ctx context.Context) error {
 	logrus.Infof("DoSend within the epoch between epStart %d and epEnd %d", epStart, epEnd)
 	//1. begin pre send process
 	preSendBool, err := helper.PreSend(ctx, epStart, epEnd, helper.ArchNode)
+	if err != nil{
+		logrus.Errorf("There is error %v in presend phase", err)
+		return err
+	}
 	if preSendBool && (err == nil) {
 		if len(helper.RawTx) > 0 && len(helper.TxHash) > 0 {
 			logrus.Infof("Begin to send raw tx with txHash %s", helper.TxHash)

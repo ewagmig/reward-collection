@@ -464,8 +464,9 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 	epstore := helper.GetStoreEPIndex(ctx)
 	laInfo := ScramChainInfo(helper.ArchNode)
 	//helper.mu.Unlock()
-	logrus.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
+
 	if laInfo.EpochIndex > epstore {
+		logrus.Warningf("Current store EP Index is %d, missing epoch data from %d to %d", epstore, epstore+1, laInfo.EpochIndex)
 		epgap := laInfo.EpochIndex - epstore
 		logrus.Infof("The epoch gap is %d:", epgap)
 		for i := epgap; i > 0; i -- {
