@@ -47,7 +47,6 @@ server:
   archiveNode1Url: "http://47.243.52.187:8545"
   archiveNode2Url: "http://47.242.228.39:8545"
 
-
 #log for mainnet info
 log:
   kafka:
@@ -58,6 +57,9 @@ log:
       - kafka-04.sinnet.huobiidc.com:9092,
       - kafka-05.sinnet.huobiidc.com:9092,
       - kafka-06.sinnet.huobiidc.com:9092
+#      - kafka-1c-5.aws-jp1.huobiidc.com:9092,
+#      - kafka-1c-3.aws-jp1.huobiidc.com:9092,
+#      - kafka-1a-2.aws-jp1.huobiidc.com:9092
   level: 5
   topic: "applog-heco"
 
