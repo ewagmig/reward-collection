@@ -56,10 +56,10 @@ log:
       - kafka-03.sinnet.huobiidc.com:9092,
       - kafka-04.sinnet.huobiidc.com:9092,
       - kafka-05.sinnet.huobiidc.com:9092,
-      - kafka-06.sinnet.huobiidc.com:9092,
-      - kafka-1c-5.aws-jp1.huobiidc.com:9092,
-      - kafka-1c-3.aws-jp1.huobiidc.com:9092,
-      - kafka-1a-2.aws-jp1.huobiidc.com:9092
+      - kafka-06.sinnet.huobiidc.com:9092
+#      - kafka-1c-5.aws-jp1.huobiidc.com:9092,
+#      - kafka-1c-3.aws-jp1.huobiidc.com:9092,
+#      - kafka-1a-2.aws-jp1.huobiidc.com:9092
   level: 5
   topic: "applog-heco"
 

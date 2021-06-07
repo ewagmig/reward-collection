@@ -487,7 +487,7 @@ func (helper *blockHelper) ProcessSync(ctx context.Context) (LaIndex uint64, err
 	//check the last send record
 	sr := &SendRecord{}
 	MDB(ctx).Last(&sr).Where("stat = ?", RecordCreated)
-	if sr == nil {
+	if sr.ID == 0 {
 		logrus.Debugf("There is no pending send record to update")
 		return laInfo.EpochIndex, nil
 	}
