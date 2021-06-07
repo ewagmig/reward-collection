@@ -56,10 +56,10 @@ log:
       - kafka-03.sinnet.huobiidc.com:9092,
       - kafka-04.sinnet.huobiidc.com:9092,
       - kafka-05.sinnet.huobiidc.com:9092,
-      - kafka-06.sinnet.huobiidc.com:9092
-#      - kafka-1c-5.aws-jp1.huobiidc.com:9092,
-#      - kafka-1c-3.aws-jp1.huobiidc.com:9092,
-#      - kafka-1a-2.aws-jp1.huobiidc.com:9092
+      - kafka-06.sinnet.huobiidc.com:9092,
+      - kafka-1c-5.aws-jp1.huobiidc.com:9092,
+      - kafka-1c-3.aws-jp1.huobiidc.com:9092,
+      - kafka-1a-2.aws-jp1.huobiidc.com:9092
   level: 5
   topic: "applog-heco"
 
@@ -79,5 +79,5 @@ validator:
 
 #common config
 common:
-  epDuration: 3
-  votingContractProxyAddr: "0x6636Cc488964AA2E9F2644248601B2909eCC394E"
+  epDuration: 36
+  votingContractProxyAddr: "0x80d1769ac6fee59BE5AAC1952a90270bbd2Ceb2F"

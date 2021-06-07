@@ -17,11 +17,10 @@ import (
 
 const (
 	EP = uint64(200)
-	//todo online removal
-	//actNum = 11
-	//actNumForDist = 21
-	actNum = 2
-	actNumForDist = 2
+	actNum = 11
+	actNumForDist = 21
+	//actNum = 2
+	//actNumForDist = 2
 )
 
 /*
@@ -160,11 +159,10 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	//sort the big numbers ASC
 	bigSort.Sort()
 
-	//todo online to remove this, only for huidu testing
 	//only fetch 22 nodes for distribution
-	//if len(bigSort) < 11 {
-	//	return nil, errors.BadRequestErrorf(errors.EthCallError, "Not enough validators in the slice!")
-	//}
+	if len(bigSort) < 11 {
+		return nil, errors.BadRequestErrorf(errors.EthCallError, "Not enough validators in the slice!")
+	}
 
 
 	if len(bigSort) >= 22 {
