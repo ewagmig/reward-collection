@@ -37,8 +37,8 @@ func start(mode string) error {
 	//refresh every 10 minute
 	c.AddFunc("@every 10m", models.SyncEpochBackground)
 	//todo on main net for the schedule
-	//c.AddFunc("CRON_TZ=Asia/Shanghai 0 0,6,12,18 * * *", models.ProcessSendBackground)
-	c.AddFunc("@every 3m", models.ProcessSendBackground)
+	c.AddFunc("CRON_TZ=Asia/Shanghai 0 0,6,12,18 * * *", models.ProcessSendBackground)
+	//c.AddFunc("@every 3m", models.ProcessSendBackground)
 	c.Start()
 
 	// Startup server to accept requests...
