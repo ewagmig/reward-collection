@@ -3,7 +3,10 @@ package models
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/starslabhq/rewards-collection/errors"
@@ -556,6 +559,36 @@ func getNotifyAmountData(valMapDist map[string]*big.Int) (da, amount string){
 	am := sum(vas)
 	amstr := am.String()
 	return dataStr, amstr
+}
+
+//estimate the gas before sending to chain
+func EstimateGas(archNode, datastr, value string) (uint64, error) {
+	client, err := ethclient.Dial(archNode)
+	if err != nil {
+		return 0, err
+	}
+	toaddr := common.HexToAddress(viper.GetString("common.votingContractProxyAddr"))
+
+	va, _ := new(big.Int).SetString(value, 10)
+
+	da, err := hexutil.Decode(datastr)
+	if err != nil {
+		return 0, err
+	}
+
+	msg := ethereum.CallMsg{
+		From: common.HexToAddress(viper.GetString("gateway.sysAddr")),
+		To: &toaddr,
+		GasPrice: big.NewInt(40000000000),
+		Value: va,
+		Data: da,
+	}
+
+	gas, err1 := client.EstimateGas(context.TODO(), msg)
+	if err1 != nil {
+		return 0, err1
+	}
+	return gas, nil
 }
 
 

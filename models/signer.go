@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -149,6 +150,16 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 	//fetch the contract data
 	dataStr, amstr := getNotifyAmountData(valMapDist)
 	logrus.Infof("The value send to contract is %s", amstr)
+
+	//the estimate gas is
+	gas, err := EstimateGas(archNode, dataStr, amstr)
+	if err != nil {
+		return
+	}
+
+	logrus.Infof("The estimate gas is %d", gas)
+	gaslimit :=  strconv.FormatUint(gas * 3/2, 10)
+	logrus.Infof("The gaslimit for contract interaction 150 is %s", gaslimit)
 	//fetch toaddr nonce
 	nonce, err := fetchNonce(ctx, archNode, sysAddr)
 	if err != nil {
@@ -166,8 +177,8 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 		Decimal: 18,
 		Platform: "starlabsne3",
 		From: sysAddr,
-		//GasLimit 1000000
-		FeeStep: "2000000",
+		//GasLimit 2000000
+		FeeStep: gaslimit,
 		//GasPrice 40GWei
 		FeePrice: "40000000000",
 		FeeAsset: "ht",
