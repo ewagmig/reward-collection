@@ -167,7 +167,7 @@ func signGateway(ctx context.Context,archNode, sysAddr string, valMapDist map[st
 		Platform: "starlabsne3",
 		From: sysAddr,
 		//GasLimit 1000000
-		FeeStep: "1000000",
+		FeeStep: "2000000",
 		//GasPrice 40GWei
 		FeePrice: "40000000000",
 		FeeAsset: "ht",
