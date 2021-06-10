@@ -215,7 +215,13 @@ func calcuDistInEpoch(epochIndex uint64, rewards *big.Int, archiveNode string) (
 	//actValSet to fetch the active val set
 	actValSet := []string{}
 	//take the edge situation into consideration, scram all the same coins from the bigSort，the 12nd element
-	val_12nd := bigSort[len(bigSort)- actNum -1]
+	var val_12nd *big.Int
+	if len(bigSort) < actNum +1 {
+		val_12nd = big.NewInt(0)
+	} else{
+		val_12nd = bigSort[len(bigSort)- actNum -1]
+	}
+
 	var sameV12 []*big.Int
 	//find all the same values
 	for _, v := range bigSort{
