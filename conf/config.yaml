@@ -51,12 +51,26 @@ server:
 log:
   kafka:
     servers:
-      - kafka-01.sinnet.huobiidc.com:9092,
-      - kafka-02.sinnet.huobiidc.com:9092,
-      - kafka-03.sinnet.huobiidc.com:9092,
-      - kafka-04.sinnet.huobiidc.com:9092,
-      - kafka-05.sinnet.huobiidc.com:9092,
-      - kafka-06.sinnet.huobiidc.com:9092
+      - log-kafka-1c-1.aws-jp1.huobiidc.com,
+      - log-kafka-1c-2.aws-jp1.huobiidc.com,
+      - log-kafka-1c-3.aws-jp1.huobiidc.com,
+      - log-kafka-1c-4.aws-jp1.huobiidc.com,
+      - log-kafka-1c-5.aws-jp1.huobiidc.com,
+      - log-kafka-1c-6.aws-jp1.huobiidc.com,
+      - log-kafka-1c-7.aws-jp1.huobiidc.com,
+      - kafka-1c-1.aws-jp1.huobiidc.com,
+      - kafka-1c-2.aws-jp1.huobiidc.com,
+      - kafka-1c-3.aws-jp1.huobiidc.com,
+      - kafka-1c-4.aws-jp1.huobiidc.com,
+      - kafka-1c-5.aws-jp1.huobiidc.com,
+      - kafka-1c-6.aws-jp1.huobiidc.com,
+      - kafka-1c-7.aws-jp1.huobiidc.com
+  #      - kafka-01.sinnet.huobiidc.com:9092,
+#      - kafka-02.sinnet.huobiidc.com:9092,
+#      - kafka-03.sinnet.huobiidc.com:9092,
+#      - kafka-04.sinnet.huobiidc.com:9092,
+#      - kafka-05.sinnet.huobiidc.com:9092,
+#      - kafka-06.sinnet.huobiidc.com:9092
 #      - kafka-1c-5.aws-jp1.huobiidc.com:9092,
 #      - kafka-1c-3.aws-jp1.huobiidc.com:9092,
 #      - kafka-1a-2.aws-jp1.huobiidc.com:9092
